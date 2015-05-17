@@ -1,0 +1,27 @@
+﻿<Window x:Class="synchronize_GUI.ChangesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ChangesWindow" Height="320" Width="1000"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterOwner"
+        FocusManager.FocusedElement="{Binding ElementName=buttonOK}">
+    <Grid Name="gridMain">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="212*" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <ScrollViewer  Grid.Row="0" Grid.ColumnSpan="2" Name="scrollerCheckox">
+            <StackPanel HorizontalAlignment="Left" Name="stackPanelCheckbox" VerticalAlignment="Top">
+                <!--CheckBox  Content="testBox" Height="16" Name="checkBoxTest" Margin="6,6,0,0" /-->
+            </StackPanel>
+        </ScrollViewer>
+        <Button Content="OK" Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,10,15" Name="buttonOK" Width="75" Height="26" VerticalAlignment="Bottom" IsDefault="True" Click="buttonOK_Click" />
+        <Button Content="Abbrechen" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" Margin="10,0,0,15" Name="buttonCancel" Width="75" Height="26" VerticalAlignment="Bottom" IsCancel="True" Click="buttonCancel_Click" />
+        <Button Content="alles auswählen" Grid.Column="1" Grid.Row="1" Height="23" HorizontalAlignment="Left" Margin="199,9,0,0" Name="buttonSelectAll" VerticalAlignment="Top" Width="95" Click="buttonSelectAll_Click" />
+        <Button Content="alles abwählen" Grid.Column="1" Grid.Row="1" Height="23" HorizontalAlignment="Left" Margin="315,9,0,0" Name="buttonDeselectAll" VerticalAlignment="Top" Width="89" Click="buttonDeselectAll_Click" />
+    </Grid>
+</Window>

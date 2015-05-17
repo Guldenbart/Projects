@@ -1,0 +1,27 @@
+﻿<Window x:Class="synchronize_GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" d:DesignHeight="535" d:DesignWidth="914" SizeToContent="WidthAndHeight">
+    <Grid Name="gridMain" >
+        <ListBox Height="100" HorizontalAlignment="Left" Margin="30,37,0,0" Name="listBox" VerticalAlignment="Top" Width="250">
+            <ListBoxItem>Musik (von PC auf externe Festplatte)</ListBoxItem>
+            <ListBoxItem>Bilder (von PC auf externe Festplatte)</ListBoxItem>
+            <ListBoxItem>Videos (von PC auf externe Festplatte)</ListBoxItem>
+            <ListBoxItem>Musik von mp3-Player auf SD-Karte</ListBoxItem>
+        </ListBox>
+        <Button Content="START" Margin="36,384,602,50" Name="buttonStart" Click="buttonStart_Click" />
+        <Button Content="Quelle" Height="24" HorizontalAlignment="Left" Margin="30,237,0,0" Name="buttonSrc" VerticalAlignment="Top" Width="187" Click="buttonSrc_Click" />
+        <Button Content="Ziel" Height="25" Margin="445,236,279,0" Name="buttonDst" VerticalAlignment="Top" Click="buttonDst_Click" />
+        <TextBox Height="27" HorizontalAlignment="Left" Margin="30,271,0,0" Name="textBoxSrc" VerticalAlignment="Top" Width="348" />
+        <TextBox Height="27" Margin="445,271,99,0" Name="textBoxDst" VerticalAlignment="Top" />
+        <Label Content="" Margin="318,384,76,50" Name="labelError" />
+        <Label Content="Profile" Height="23" HorizontalAlignment="Left" Margin="30,12,0,0" Name="labelProfiles" VerticalAlignment="Top" Width="250" FontWeight="Bold" />
+        <Label Content="Einstellungen" FontWeight="Bold" Height="23" HorizontalAlignment="Left" Margin="302,12,0,0" Name="labelSettings" VerticalAlignment="Top" Width="250" />
+        <Grid Height="182" HorizontalAlignment="Left" Margin="306,37,0,0" Name="gridCheckBox" VerticalAlignment="Top" Width="531">
+            <CheckBox Content="untergeordnete Ordner einbeziehen" Height="16" HorizontalAlignment="Left" Margin="6,6,0,0" Name="checkBoxsubDir" VerticalAlignment="Top" />
+            <CheckBox Content="bei jeder Aktion nachfragen" Height="16" HorizontalAlignment="Left" Margin="6,24,0,0" Name="checkBoxCheckBeforeCopy" VerticalAlignment="Top" />
+            <CheckBox Content="erweiterte Dateiprüfung" Height="16" HorizontalAlignment="Left" Margin="6,42,0,0" Name="checkBoxExtended" VerticalAlignment="Top" />
+            <CheckBox Content="'flache' Kopie" Height="16" HorizontalAlignment="Left" Margin="6,60,0,0" Name="checkBoxFlat" VerticalAlignment="Top" />
+        </Grid>
+    </Grid>
+</Window>
