@@ -110,33 +110,37 @@ namespace synchronize_GUI
 			StringBuilder retVal = new StringBuilder("<");
 
 			switch (c.type) {
-				case 1:
+				case ChangeType.TYPE_COPY:
 					retVal.Append("Datei kopieren>    ");
 					break;
-				case 2:
+				case ChangeType.TYPE_REPLACE:
 					retVal.Append("Datei ersetzen>    ");
 					break;
-				case 3:
+				case ChangeType.TYPE_MKDIR:
 					retVal.Append("Ordner erstellen> ");
 					break;
 				default:
 					retVal.Append("ungültig!");
 					break;
 			}
+			retVal.Append(c.source);
+			retVal.Append(" --> ");
 			retVal.Append(c.destination);
+			retVal.Append(" by ");
+			retVal.Append(c.artist);
 
 			return retVal.ToString();
 		}
 
 
-		private static Color generateCheckboxBackground(int type)
+		private static Color generateCheckboxBackground(ChangeType type)
 		{
 			switch (type) {
-				case 1:
+				case ChangeType.TYPE_COPY:
 					return Colors.LimeGreen;
-				case 2:
+				case ChangeType.TYPE_REPLACE:
 					return Colors.Crimson;
-				case 3:
+				case ChangeType.TYPE_MKDIR:
 					return Colors.Gold;
 				default:
 					return Colors.White;

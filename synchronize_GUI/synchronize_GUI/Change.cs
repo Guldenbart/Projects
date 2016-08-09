@@ -6,13 +6,16 @@ using System.IO;
 
 namespace synchronize_GUI
 {
+	enum ChangeType { TYPE_INVALID = -1, TYPE_UNDET = 0, TYPE_COPY = 1, TYPE_REPLACE = 2, TYPE_MKDIR = 3 };
+
 	public class Change
 	{
-		private int _type;
+		private ChangeType _type;
 		private StringBuilder _source;		// empty, if it's type '3'
 		private StringBuilder _destination;
 		private bool _hidden;
 		private bool _doPerform;
+		private StringBuilder _artist;
 
 		/**
 		 * -1: ungültig
@@ -21,14 +24,14 @@ namespace synchronize_GUI
 		 * 2: Datei ersetzen
 		 * 3: Ordner erstellen
 		 */
-        public int type
+        public ChangeType type
 		{
 			get { 
 				return _type;
 			}
 			set {
-				if (value < -1 || value > 3) {
-					this._type = -1;
+				if ((int)value < -1 || (int)value > 3) {
+					this._type = ChangeType.TYPE_INVALID;
 				}
 				else {
 					this._type = value;
@@ -76,18 +79,31 @@ namespace synchronize_GUI
 			}
 		}
 
+		public String artist
+		{
+			get
+			{
+				return this._artist.ToString();
+			}
+			set
+			{
+				this._artist = new StringBuilder(value);
+			}
+		}
 
-		public Change() : this("", "", 0, false) { }
-		public Change(int t) : this("", "", t, false) { }
-		public Change(String directory, int t, bool h) : this("", directory, t, h) { }
 
-		public Change(String src, String dest, int t, bool h)
+		public Change() : this("", "", ChangeType.TYPE_UNDET, false, "N.A.") { }
+		public Change(ChangeType t) : this("", "", t, false, "N.A.") { }
+		public Change(String directory, ChangeType t, bool h) : this("", directory, t, h, "N.A.") { }
+
+		public Change(String src, String dest, ChangeType type, bool hidden, String art)
 		{
 			this.source = src;
 			this.destination = dest;
-			this.type = t;
-			this.hidden = h;
+			this.type = type;
+			this.hidden = hidden;
 			this.doPerform = false;
+			this.artist = art;
 		}
 		
 		public void perform()
@@ -97,19 +113,19 @@ namespace synchronize_GUI
 			}
 			
 			switch(this.type) {
-			case 1:
+			case ChangeType.TYPE_COPY:
 				// Datei kopieren
 				FileInfo fileCopy = new FileInfo(this.source);
 				fileCopy.CopyTo(this.destination, false);
 				break;
 			
-			case 2:
+			case ChangeType.TYPE_REPLACE:
 				// Datei ersetzen
 				FileInfo fileReplace = new FileInfo(this.source);
 				fileReplace.CopyTo(this.destination, true);
 				break;
 				
-			case 3:
+			case ChangeType.TYPE_MKDIR:
 				//Ordner erstellen
 				System.IO.Directory.CreateDirectory(this.destination);
 				break;

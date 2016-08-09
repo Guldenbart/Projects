@@ -22,6 +22,9 @@ namespace synchronize_GUI
     {
 		private Synchronizer synch;
 
+		/// <summary>
+		/// constructor of class MainWindow
+		/// </summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -41,6 +44,9 @@ namespace synchronize_GUI
 			 */ 
         }
 
+		/// <summary>
+		/// enables some settings only for debugging
+		/// </summary>
 		private void debugSettings()
 		{
 			this.listBox.SelectedIndex = 0;
@@ -51,6 +57,11 @@ namespace synchronize_GUI
 			textBoxDst.Text = @"D:\stuff\testDest";
 		}
 
+		/// <summary>
+		/// deletes the slash at the end of a path string if one exists.
+		/// </summary>
+		/// <param name="path">path to edited</param>
+		/// <returns>path string with no slash at the end</returns>
 		private String cutEndingSlash(String path)
 		{
 			if (path.EndsWith(@"\") || path.EndsWith(@"/")) {
@@ -61,6 +72,11 @@ namespace synchronize_GUI
 			}
 		}
 
+		/// <summary>
+		/// click event for the button "buttonSrc"
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
         private void buttonSrc_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
@@ -71,6 +87,11 @@ namespace synchronize_GUI
             }
         }
 
+		/// <summary>
+		/// click event for the button "buttonDst"
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
         private void buttonDst_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
@@ -82,6 +103,11 @@ namespace synchronize_GUI
 
         }
 
+		/// <summary>
+		/// click event for the button "buttonStart"
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
         private void buttonStart_Click(object sender, RoutedEventArgs e)
         {
             if (listBox.SelectedItem == null) {

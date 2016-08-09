@@ -12,10 +12,10 @@ namespace synchronize_GUI
 	{
         private StringBuilder destinationPath { get; set; }
         private StringBuilder sourcePath { get; set; }
-        public bool doSubdirs { get; set; }
-        public bool checkBeforeCopy { get; set; }
-        public bool flatCopy { get; set; }
-		public bool extFileCheck { get; set; }
+        public bool doSubdirs { get; set; }			// Unterverzeichnisse mit einbeziehen
+        public bool checkBeforeCopy { get; set; }	// Änderungen anzeigen, bevor sie umgesetzt werden können
+        public bool flatCopy { get; set; }			// im Ziel nicht die Ordnerstruktur abbilden
+		public bool extFileCheck { get; set; }		// Dateien mit demselben Namen auf Unterschiede prüfen
         
         public int type { get; set; } // what, how (see listBox)
         public ArrayList changeList;
@@ -62,6 +62,9 @@ namespace synchronize_GUI
 			this.sourcePath.Append(s);
 		}
 
+		/// <summary>
+		/// bootstrap method for Synchronizing.
+		/// </summary>
         public void synchronize()
         {
 			synchronize_recursive(this.getSourcePath(), this.getDestinationPath());
@@ -72,12 +75,21 @@ namespace synchronize_GUI
 			}
 			
 			if (dr == System.Windows.Forms.DialogResult.OK) {
-				foreach (Change item in this.changeList) {
-					item.perform();
+				foreach (Change changeItem in this.changeList) {
+					changeItem.perform();
 				}
+			}
+			else if (dr == System.Windows.Forms.DialogResult.Cancel) {
+				// clear the change list, so that it will be refilled correctly next time.
+				changeList.Clear();
 			}
         }
 
+		/// <summary>
+		/// recursive method to got through all (files and) directories.
+		/// </summary>
+		/// <param name="srcPath">path where files are copied from.</param>
+		/// <param name="destPath">path where files will be copied to.</param>
 		public void synchronize_recursive(String srcPath, String destPath)
 		{
 			/*
@@ -89,10 +101,8 @@ namespace synchronize_GUI
 			/*
 			 * check files in directory
 			 */
-			//foreach (String file in System.IO.Directory.EnumerateFiles(srcPath, "*.*", System.IO.SearchOption.TopDirectoryOnly).Where(s => s.EndsWith(".mp3") || s.EndsWith(".wma"))) {
 			foreach (System.IO.FileInfo file in sourceInfo.GetFiles().Where(s => s.Extension == ".mp3" || s.Extension == ".wma")) {
 
-				//Change c = fileCheck(srcPath, destPath, file);
 				Change c = fileCheck(srcPath, destPath, file.ToString());
 				/*
 				 * file doesn't exist in destination directory, so copy it
@@ -148,24 +158,42 @@ namespace synchronize_GUI
 			System.IO.FileInfo srcInfo = new System.IO.FileInfo(completeSrcPath/*.ToString()*/);
 			System.IO.FileInfo destInfo = new System.IO.FileInfo(completeDestPath/*.ToString()*/);
 
-			if (!System.IO.File.Exists(completeDestPath.ToString())) {				
-				return new Change(completeSrcPath.ToString(), completeDestPath.ToString(), 1, ((System.IO.File.GetAttributes(completeSrcPath) & System.IO.FileAttributes.Hidden) == System.IO.FileAttributes.Hidden));
+			TagLib.File tagSrcFile = TagLib.File.Create(completeSrcPath);
+			TagLib.File tagDestFile = TagLib.File.Create(completeDestPath);
+			String srcArtist = tagSrcFile.Tag.FirstAlbumArtist;
+			String destArtist = tagDestFile.Tag.FirstAlbumArtist;
+
+			if (!System.IO.File.Exists(completeDestPath.ToString())) {
+				bool hidden = ((System.IO.File.GetAttributes(completeSrcPath) & System.IO.FileAttributes.Hidden) == System.IO.FileAttributes.Hidden);
+				return new Change(completeSrcPath.ToString(), completeDestPath.ToString(), ChangeType.TYPE_COPY, hidden, srcArtist);
 			} else if (this.extFileCheck && srcInfo.Length != destInfo.Length) {
-				return new Change(completeSrcPath.ToString(), completeDestPath.ToString(), 2, ((System.IO.File.GetAttributes(completeSrcPath) & System.IO.FileAttributes.Hidden) == System.IO.FileAttributes.Hidden));
+				
+				// look for files with the same name but not the same artist. (like "name (2)"; "name (3)"...)
+				if (srcArtist != destArtist) {
+
+				}
+
+				return new Change(completeSrcPath.ToString(), completeDestPath.ToString(), ChangeType.TYPE_REPLACE, ((System.IO.File.GetAttributes(completeSrcPath) & System.IO.FileAttributes.Hidden) == System.IO.FileAttributes.Hidden), srcArtist);
 			}
 
-			return new Change(-1);
+			return new Change(ChangeType.TYPE_INVALID);
 		}
 
+		/// <summary>
+		/// method to check if a new directory has to be created
+		/// </summary>
+		/// <param name="destinationPath">path where the new directory will be created if it doesn't exist yet.</param>
+		/// <param name="newDirectory">directory that will be created if not existing.</param>
+		/// <returns>Change object that represents the directory creation.</returns>
 		public Change directoryCheck(String destinationPath, String newDirectory)
 		{
 			String completeDestPath = String.Concat(destinationPath, @"\", newDirectory);
 
 			if (!System.IO.Directory.Exists(completeDestPath.ToString())) {
-				return new Change(completeDestPath.ToString(), 3, false);
+				return new Change(completeDestPath.ToString(), ChangeType.TYPE_MKDIR, false);
 			}
 
-			return new Change(-1);
+			return new Change(ChangeType.TYPE_INVALID);
 		}
 
 		/*
