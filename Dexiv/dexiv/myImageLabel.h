@@ -24,7 +24,7 @@ public:
 	bool Zooming();
 
 	void addSquare(PersonSquare* ps);
-	void clearVec();
+	void clearSquares();
 	void moveRect();
 
 protected:

@@ -55,9 +55,9 @@ void MyImageLabel::addSquare(PersonSquare* ps)
 }
 
 /*
- * löscht alle PersonSquares aus dem Vektor
+ * lÃ¶scht alle PersonSquares aus dem Vektor
  */
-void MyImageLabel::clearVec()
+void MyImageLabel::clearSquares()
 {
 	this->squareVec.clear();
 }

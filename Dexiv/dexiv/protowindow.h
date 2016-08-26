@@ -1,6 +1,8 @@
 #ifndef PROTOWINDOW_H
 #define PROTOWINDOW_H
 
+// TODO: werden die Informationen zum Bild gesichert???
+// TODO: in der Titelleiste des Fensters den Namen der angeziegten Datei anzeigen
 // TODO: prüfen, ob man das paintEvent dieser Klasse ganz entfernen kann
 // KOMMENTIEREN!!!!!
 // TODO: prüfen, ob setCurrent nicht auch ohne Parameter geht, da filename ja als Attribut abgespeichert wird
@@ -9,9 +11,14 @@
 // TODO: unnötige Zwischenräume bei der GUI wegmachen
 // TODO: Abhängigkeiten von std-Bibliothek entfernen
 
-#include <QtGui/QMainWindow>
+#include <QMainWindow>
 #include <QtGui>
-//#include <vector>
+#include <QScrollBar>
+#include <QLabel>
+//#include <QtPrintSupport/QPrinter>
+//#include <QtPrintSupport/QPrintDialog>
+#include <QMessageBox>
+#include <QFileDialog>
 
 #include "personSquare.h"
 #include "myImageLabel.h"
@@ -40,18 +47,13 @@ protected:
 	void paintEvent(QPaintEvent* e);
 
 private:
-	/*struct Node {
-		int _x;
-		int _y;
-		QString _text;
-		Node * next;
-	};*/
 
 	struct Array {
 		QString fileName;
 		QString content;
 		int offset;
 		bool changed;
+		bool loaded;
 	};
 
 	//Daten
@@ -59,16 +61,17 @@ private:
 
 	int argc;
 	char** argv;
-	MyImageLabel* imageLabel; //Label, das das Bild enthaelt
+	MyImageLabel* imageLabel; // Label, das das Bild enthält
 
-	QDir curDir; //aktuelles Verzeichnis
-	bool vectorSet; //true, wenn die jp(e)g-Dateien-Liste schon erstellt wurde
-	QVector<QString> dirVec; //Vektor mit allen jp(e)g-Dateien des Ordners
+	QDir curDir; // Verzeichnis des aktuellen Bilds, wird vor allem gebraucht um zu überprüfen, ob bei open der Ordner gewechselt wird
+	bool vectorSet; // true, wenn die jp(e)g-Dateien-Liste schon erstellt wurde
+	QVector<QString> dirVec; // Vektor mit allen jp(e)g-Dateien-Pfade des aktuellen Ordners
 	int current; // myDir-Index des momentan geöffneten Bildes
 	QImage currentImage;
 	QString filename;
 	double scaleFactor;
 	Array* stringArray;
+	bool imageChanged;
 
 	//Funktionen
 	void setCurrent(QString filename);
@@ -82,25 +85,29 @@ private:
 	void createStringList();
 	QString parseContentFromFile(QString content, int offset);
 	bool findFile(QString content, int& fileNumber);
+	void saveData();
+	void cleanUp();
 
 	//Aktionen
-	QPrinter printer;
+	//QPrinter printer;
 
 	QAction *openAct;
-	QAction *printAct;
+	//QAction *printAct;
 	QAction *exitAct;
 	QAction *zoomInAct;
 	QAction *zoomOutAct;
 	QAction *normalSizeAct;
 	QAction *fitToWindowAct;
+	QAction *invertImageAct;
+	QAction *rotateLeftAct;
+	QAction *rotateRightAct;
 	QAction *aboutAct;
 	QAction *aboutQtAct;
 
-	//Menues
+	//Menüs
 	QMenu *fileMenu;
 	QMenu *viewMenu;
 	QMenu *helpMenu;
-
 
 
 private slots:
@@ -109,11 +116,16 @@ private slots:
 	void on_showPushButton_clicked();
 
 	void open();
-	void print();
+	void close();
+	//void print();
 	void zoomIn();
 	void zoomOut();
 	void normalSize();
 	void fitToWindow();
+	void invertImage();
+	void rotateLeft();
+	void rotateRight();
+	void rotate(int angle);
 	void about();
 };
 

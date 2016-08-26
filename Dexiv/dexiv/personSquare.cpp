@@ -1,15 +1,8 @@
 #include "personSquare.h"
 
-PersonSquare::PersonSquare(QWidget* parent, MyImageLabel* _l, int _x, int _y)
-	:QWidget(parent), l(_l), x(_x), y(_y)
+PersonSquare::PersonSquare(QWidget* parent, MyImageLabel* _l, int _x, int _y, QString _text)
+	:QWidget(parent), l(_l), x(_x), y(_y), name(_text)
 {
-	bool ok;
-	QString text = QInputDialog::getText(this, tr("Name"),
-													tr("Name eingeben:"), QLineEdit::Normal,
-													"", &ok);
-	if (ok && !text.isEmpty())
-		this->name = text;
-
 }
 
 int PersonSquare::getX()
@@ -27,14 +20,14 @@ QString PersonSquare::getName()
 	return this->name;
 }
 
-void PersonSquare::setX(int _x)
+void PersonSquare::setX(int x)
 {
-	this->x = _x;
+	this->x = x;
 }
 
-void PersonSquare::setY(int _y)
+void PersonSquare::setY(int y)
 {
-	this->y = _y;
+	this->y = y;
 }
 
 QString PersonSquare::packData()
