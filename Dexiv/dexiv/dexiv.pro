@@ -19,6 +19,7 @@ SOURCES += main.cpp \
 
 HEADERS += protowindow.h \
     personSquare.h \
-    myImageLabel.h
+    myImageLabel.h \
+    imageinfo.h
 
 FORMS    += protowindow.ui

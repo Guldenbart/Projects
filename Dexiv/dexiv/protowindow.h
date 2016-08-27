@@ -22,6 +22,7 @@
 
 #include "personSquare.h"
 #include "myImageLabel.h"
+#include "imageinfo.h"
 
 class PersonSquare;
 class MyImageLabel;
@@ -48,14 +49,6 @@ protected:
 
 private:
 
-	struct Array {
-		QString fileName;
-		QString content;
-		int offset;
-		bool changed;
-		bool loaded;
-	};
-
 	//Daten
 	Ui::ProtoWindow *ui;
 
@@ -63,27 +56,27 @@ private:
 	char** argv;
 	MyImageLabel* imageLabel; // Label, das das Bild enthält
 
-	QDir curDir; // Verzeichnis des aktuellen Bilds, wird vor allem gebraucht um zu überprüfen, ob bei open der Ordner gewechselt wird
-	bool vectorSet; // true, wenn die jp(e)g-Dateien-Liste schon erstellt wurde
+	QDir curDir; // Verzeichnis des aktuellen Bilds; wird vor allem gebraucht um zu überprüfen, ob bei open() der Ordner gewechselt wird
 	QVector<QString> dirVec; // Vektor mit allen jp(e)g-Dateien-Pfade des aktuellen Ordners
 	int current; // myDir-Index des momentan geöffneten Bildes
 	QImage currentImage;
-	QString filename;
 	double scaleFactor;
-	Array* stringArray;
+	QVector<ImageInfo> imgInfoVec;
 	bool imageChanged;
+	int timesRotated;
 
 	//Funktionen
+	void onNewFolder();
+	void onNewImage();
 	void setCurrent(QString filename);
 	void createActions();
 	void createMenus();
-	void updateActions();
+	void updateUI();
 	void scaleImage(double factor);
 	void adjustScrollBar(QScrollBar *scrollBar, double factor);
 	double fittingSize();
 	bool showNextImage(QString filename);
-	void createStringList();
-	QString parseContentFromFile(QString content, int offset);
+	QString parseContentFromFile(QString content);
 	bool findFile(QString content, int& fileNumber);
 	void saveData();
 	void cleanUp();
@@ -97,7 +90,7 @@ private:
 	QAction *zoomInAct;
 	QAction *zoomOutAct;
 	QAction *normalSizeAct;
-	QAction *fitToWindowAct;
+	QAction *actualSizeAct;
 	QAction *invertImageAct;
 	QAction *rotateLeftAct;
 	QAction *rotateRightAct;
@@ -121,7 +114,7 @@ private slots:
 	void zoomIn();
 	void zoomOut();
 	void normalSize();
-	void fitToWindow();
+	void actualSize();
 	void invertImage();
 	void rotateLeft();
 	void rotateRight();

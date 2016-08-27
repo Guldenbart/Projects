@@ -26,9 +26,10 @@ ProtoWindow::ProtoWindow(QWidget *parent)
 	ui->scrollArea->setWidget(imageLabel);
 
 	this->current = 0;
-	this->vectorSet = false;
+	this->scaleFactor = 1.0;
 	this->curDir = QDir::current();
 	this->imageChanged = false;
+	this->timesRotated = 0;
 
 	this->showMaximized();
 
@@ -47,6 +48,256 @@ ProtoWindow::~ProtoWindow()
 }
 
 /*
+ * Kopiert die Argumente vom Starten des Programms in die Klasse.
+ */
+void ProtoWindow::setArgs(int _argc, char** _argv)
+{
+	this->argc = _argc;
+	this->argv = _argv;
+}
+
+/*
+ * trägt alle Dateinamen von jpeg-Dateien des aktuellen Ordners in einen Vektor ein.
+ */
+void ProtoWindow::setDirVec()
+{
+	// Filter erstellen, der nur jp(e)g-Datein berücksichtigt.
+	QStringList filters;
+	filters << "*.jpg" << "*.jpeg" << "*.JPG" << "*.JPEG";
+
+	// Liste aller Dateien mit im Filter angegebenen Dateinamen erstellen
+	QFileInfoList _infoList = this->curDir.entryInfoList(filters);
+
+	// Vektor erstellen, in den alle Bilddateien mit ihrem absoluten Pfad eingetragen werden.
+	for(int in = 0; in < _infoList.length(); in++) {
+		this->dirVec.push_back(_infoList.at(in).absoluteFilePath());
+	}
+}
+
+/*
+ * wurde das Programm durch Doppelklick auf eine jp(e)g-Datei geöffnet, muss gleich dieses
+ * Bild angezeigt werden.
+ *
+ * wird z.Zt. nicht weiter entwickelt
+ */
+void ProtoWindow::setFirstImage()
+{
+	QString q = QString::fromStdString(this->argv[1]);
+	setCurrent(q);
+
+	// Bild anzeigen
+
+	QString fileName = (this->curDir.filePath(this->dirVec[this->current]));
+	// Dateiname sollte nicht leer sein...
+	if (showNextImage(fileName)) {
+
+		ui->backPushButton->setEnabled(true);
+		ui->forwardPushButton->setEnabled(true);
+		ui->showPushButton->setEnabled(true);
+	}
+}
+
+void ProtoWindow::onNewFolder()
+{
+	onNewImage();
+}
+
+void ProtoWindow::onNewImage()
+{
+	// Label leeren (d.h. Bild und PersonSquares löschen)
+	this->imageLabel->clear();
+	this->imageLabel->clearSquares();
+
+	this->scaleFactor = 1.0;
+}
+
+/*
+ * findet heraus, welchen Index das als geoeffnete Bild hat.
+ */
+void ProtoWindow::setCurrent(QString filename)
+{
+	// '\' durch '/' ersetzen:
+	for(int i = 0; i < filename.size(); i++)
+	{
+		if(filename[i] == '\\')
+			filename[i] = '/';
+	}
+
+	// Durch den Vektor mit allen Dateinamen gehen und mit 'filename' abgleichen.
+	for(int i = 0; i < this->dirVec.size(); i++)
+	{
+		if(curDir.filePath(this->dirVec[i]) == filename)
+		{
+			this->current = i;
+			return;
+		}
+	}
+	 // Falls der Dateiname nicht gefunden wurde... (was wahrscheinlich nur durch einen
+	 // Fehler an einer anderen Stelle im Programm passieren kann)
+	this->current = 0;
+}
+
+/*
+ * Bild der Fenstergöße anpassen; bzw nach einem Zoomvorgang die Bildgröße
+ * entsprechend verändern
+ */
+void ProtoWindow::scaleImage(double factor)
+{
+	//Q_ASSERT(imageLabel->pixmap());
+	this->scaleFactor *= factor;
+	this->imageLabel->setZoomFactor(scaleFactor);
+
+	QImage newImage = imageLabel->MyImage();
+	const QSize newSize(static_cast<int>(static_cast<double>(newImage.width()) * factor), (static_cast<int>(static_cast<double>(newImage.height()) * factor)));
+	newImage.scaled(newSize);
+	imageLabel->setMyImage(newImage);
+	imageLabel->resize(scaleFactor * imageLabel->pixmap()->size());
+
+	adjustScrollBar(ui->scrollArea->horizontalScrollBar(), factor);
+	adjustScrollBar(ui->scrollArea->verticalScrollBar(), factor);
+}
+
+/*
+ * Bereits vorgegebene Funktion, die die Größe der Scrollbars der Fenstergröße anpasst
+ */
+void ProtoWindow::adjustScrollBar(QScrollBar *scrollBar, double factor)
+{
+	scrollBar->setValue(int(factor * scrollBar->value() + ((factor - 1) * scrollBar->pageStep()/2)));
+}
+
+/*
+ * Funktion, die genau den Faktor zurückgibt, der benötigt wird, um das Bild
+ * im unveränderten Seitenverhältnis an die ScrollArea-Größe anzupassen
+ */
+double ProtoWindow::fittingSize()
+{
+	if (this->currentImage.isNull()) {
+		return 1.0;
+	}
+
+	QSize labelSize = this->imageLabel->size();
+	QSize areaSize = ui->scrollArea->size();
+
+	double labelSize_h = static_cast<double>(labelSize.height());
+	double labelSize_w = static_cast<double>(labelSize.width());
+	double areaSize_h = static_cast<double>(areaSize.height());
+	double areaSize_w = static_cast<double>(areaSize.width());
+
+	if (labelSize_h < areaSize_h && labelSize_w < areaSize_w) {
+		//Bild ist sowieso kleiner als ScrollArea
+		return 1.0;
+	}
+
+	if (((labelSize_h/labelSize_w)/(areaSize_h/areaSize_w)) > 1) {
+		// Höhe ist entscheidender Faktor
+		return (areaSize_h / labelSize_h)-0.001;
+	} else {
+		// Weite ist entscheidender Faktor
+		return (areaSize_w / labelSize_w)-0.001;
+	}
+}
+
+/*
+ * Gemeinsame Funktion von open, on_backPushButton_clicked und on_forwardPushButton_clicked.
+ *
+ * sorgt dafür, dass Bild 'fileName' angezeigt wird.
+ */
+bool ProtoWindow::showNextImage(QString fileName)
+{
+	/*
+	// Label leeren (d.h. Bild und PersonSquares löschen)
+	this->imageLabel->clear();
+	this->imageLabel->clearSquares();
+	*/
+
+	// TODO: sollte eig nicht mehr vorkommen, weil in open() schon abgefangen; und in den anderen Funktionen sollte fileName nie leer werden können
+	if (fileName.isEmpty()) {
+		return false;
+	}
+
+	onNewImage();
+
+	QImage image(fileName);
+	if (image.isNull()) {
+		 QMessageBox::information(this, tr("EXIV Viewer"), tr("%1 konnte nicht geladen werden.").arg(fileName));
+		 return false;
+	}
+
+	this->currentImage = image;
+	this->imageLabel->setPixmap(QPixmap::fromImage(image));
+
+	scaleImage(fittingSize());
+
+	updateUI();
+	return true;
+}
+
+/*
+ * extrahiert die Informationen einer Zeile der Content-Datei.
+ */
+QString ProtoWindow::parseContentFromFile(QString content) {
+
+	// Als erstes müssen die Rand-Symbole überprüft werden.
+	if (content[0] != '&' || content[content.size()-1] != '%') {
+		//Fehler: Falsche Kodierung in der Datei
+	}
+	int index = 0;
+	// Als nächstes muss der Punkt des Dateinamens gefunden werden
+	while (content[index] != '.') {
+		if (content[index++] == '$') {
+			//Fehler: ungültiger Dateiname, der nicht erkannt werden kann.
+		}
+		if (content[index] == '%') {
+			//Fehler: kein Dateiname
+		}
+	}
+	int fileNumber = -1;
+	if (content[index+3] == 'g' || content[index+3] == 'G') {
+		findFile(QString::fromStdString((content.toStdString()).substr(1,index+3)), fileNumber);
+		if (fileNumber == -1) {
+			//Fehler: ungültiger Dateiname
+		}
+	}
+	else {
+
+	}
+
+	return "";
+}
+
+/*
+ * Überprüft, ob die Datei, die als String übergeben wird, eine Bilddatei
+ * im dirVec ist. falls ja, wird true zurückgeliefert und der Index im dirVec
+ * unter fileNumber gespeichert. Falls nicht, wird false zurückgeliefert.
+ */
+bool ProtoWindow::findFile(QString content, int& fileNumber)
+{
+	for (int i = 0; i < this->dirVec.size(); i++) {
+		if (content == this->dirVec[i]) {
+			fileNumber = i;
+			return true;
+		}
+	}
+	return false;
+}
+
+void ProtoWindow::saveData()
+{
+
+}
+
+void ProtoWindow::cleanUp()
+{
+	//delete stringArray;
+
+}
+
+/* #################################################################################################
+ * ## Menü- und Button-Funktionen
+ * #################################################################################################
+ */
+
+/*
  * Menüs erstellen
  */
 void ProtoWindow::createMenus()
@@ -61,10 +312,11 @@ void ProtoWindow::createMenus()
 	viewMenu->addAction(zoomInAct);
 	viewMenu->addAction(zoomOutAct);
 	viewMenu->addAction(normalSizeAct);
-	viewMenu->addSeparator();
-	viewMenu->addAction(fitToWindowAct);
+	viewMenu->addAction(actualSizeAct);
 	viewMenu->addSeparator();
 	viewMenu->addAction(invertImageAct);
+	viewMenu->addAction(rotateLeftAct);
+	viewMenu->addAction(rotateRightAct);
 
 	helpMenu = new QMenu(tr("&Hilfe"), this);
 	helpMenu->addAction(aboutAct);
@@ -104,15 +356,14 @@ void ProtoWindow::createActions()
 	connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
 
 	normalSizeAct = new QAction(tr("&Normale Größe"), this);
-	normalSizeAct->setShortcut(tr("Ctrl+S"));
+	normalSizeAct->setShortcut(tr("Ctrl+N"));
 	normalSizeAct->setEnabled(false);
 	connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
 
-	fitToWindowAct = new QAction(tr("an Fenstergröße &anpassen"), this);
-	fitToWindowAct->setEnabled(false);
-	fitToWindowAct->setCheckable(true);
-	fitToWindowAct->setShortcut(tr("Ctrl+A"));
-	connect(fitToWindowAct, SIGNAL(triggered()), this, SLOT(fitToWindow()));
+	actualSizeAct = new QAction(tr("&Tatsächliche Größe"), this);
+	actualSizeAct->setShortcut(tr("Ctrl+T"));
+	actualSizeAct->setEnabled(false);
+	connect(actualSizeAct, SIGNAL(triggered()), this, SLOT(actualSize()));
 
 	invertImageAct = new QAction(tr("Farben &invertieren"), this);
 	invertImageAct->setEnabled(false);
@@ -136,11 +387,17 @@ void ProtoWindow::createActions()
 	connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
 }
 
-void ProtoWindow::updateActions()
+void ProtoWindow::updateUI()
 {
-	zoomInAct->setEnabled(!fitToWindowAct->isChecked());
-	zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
-	normalSizeAct->setEnabled(!fitToWindowAct->isChecked());
+	double fs = fittingSize();
+	zoomInAct->setEnabled(this->scaleFactor<4.0 && !this->currentImage.isNull());
+	zoomOutAct->setEnabled(this->scaleFactor>0.25 && !this->currentImage.isNull());
+	normalSizeAct->setEnabled(fittingSize()!=1.0 && !this->currentImage.isNull());
+	actualSizeAct->setEnabled(this->scaleFactor!=1.0 && !this->currentImage.isNull());
+
+	invertImageAct->setEnabled(!this->currentImage.isNull());
+	rotateLeftAct->setEnabled(!this->currentImage.isNull());
+	rotateRightAct->setEnabled(!this->currentImage.isNull());
 }
 
 /*
@@ -157,8 +414,7 @@ void ProtoWindow::open()
 		return;
 	}
 
-	saveData();
-	//cleanUp();
+	onNewFolder();
 
 	//wird gebraucht, um Pfad extrahieren zu können
 	QFileInfo info(fileName);
@@ -166,23 +422,25 @@ void ProtoWindow::open()
 	if (showNextImage(fileName)) {
 
 		//Überprüfen, ob die Liste der Dateien neu erstellt werden muss
-		if(info.absoluteDir() != this->curDir || !this->vectorSet)
+		if(info.absoluteDir() != this->curDir || this->dirVec.empty())
 		{
 			this->curDir = info.absoluteDir();
 			setDirVec();
-			createStringList();
 		}
 		setCurrent(info.absoluteFilePath());
 
 		ui->backPushButton->setEnabled(true);
 		ui->forwardPushButton->setEnabled(true);
 		ui->showPushButton->setEnabled(true);
+
+		updateUI();
 	}
 }
 
 void ProtoWindow::close()
 {
-
+	cleanUp();
+	exit(0);
 }
 
 /*
@@ -208,6 +466,7 @@ void ProtoWindow::zoomIn()
 	//this->imageLabel->setZooming(true);
 	scaleImage(1.25);
 	//this->imageLabel->setZooming(false);
+	updateUI();
 }
 
 void ProtoWindow::zoomOut()
@@ -215,26 +474,24 @@ void ProtoWindow::zoomOut()
 	//this->imageLabel->setZooming(true);
 	scaleImage(0.8);
 	//this->imageLabel->setZooming(false);
+	updateUI();
 }
 
 void ProtoWindow::normalSize()
 {
-	scaleFactor = 1.0;
-	scaleImage(1.0);
+//	this->scaleFactor = fittingSize();
+	scaleImage(fittingSize());
 
-	imageLabel->adjustSize();
+	//imageLabel->adjustSize();
+	updateUI();
 }
 
-void ProtoWindow::fitToWindow()
+void ProtoWindow::actualSize()
 {
-	bool fitToWindow = fitToWindowAct->isChecked();
-	ui->scrollArea->setWidgetResizable(fitToWindow);
-	if (!fitToWindow)
-	{
-		normalSize();
-	}
-	updateActions();
-	update();
+	this->scaleFactor = 1.0;
+	scaleImage(1.0);
+
+	updateUI();
 }
 
 void ProtoWindow::invertImage()
@@ -244,17 +501,22 @@ void ProtoWindow::invertImage()
 	}
 
 	this->currentImage.invertPixels();
-	update();
+	this->imageChanged = true;
+	this->imageLabel->update();
 }
 
 void ProtoWindow::rotateLeft()
 {
 	rotate(90);
+	this->imageLabel->setMyImage(this->currentImage);
+	this->imageLabel->repaint();
 }
 
 void ProtoWindow::rotateRight()
 {
 	rotate(270);
+	this->imageLabel->setMyImage(this->currentImage);
+	this->imageLabel->repaint();
 }
 
 void ProtoWindow::rotate(int angle)
@@ -263,7 +525,7 @@ void ProtoWindow::rotate(int angle)
 	rotating.rotate(angle);
 	this->currentImage = this->currentImage.transformed(rotating);
 
-	update();
+	//update();
 }
 
 void ProtoWindow::about()
@@ -421,273 +683,4 @@ void ProtoWindow::paintEvent(QPaintEvent* event)
 	fout << "Viereck gemalt!";
 	fout.close();
 	painter.drawImage(QPoint(11, 33), this->currentImage);*/
-}
-
-/*
- * Kopiert die Argumente vom Starten des Programms in die Klasse.
- */
-void ProtoWindow::setArgs(int _argc, char** _argv)
-{
-	this->argc = _argc;
-	this->argv = _argv;
-}
-
-/*
- * trägt alle Dateinamen von jpeg-Dateien des aktuellen Ordners in einen Vektor ein.
- */
-void ProtoWindow::setDirVec()
-{
-	// Filter erstellen, der nur jp(e)g-Datein berücksichtigt.
-	QStringList filters;
-	filters << "*.jpg" << "*.jpeg" << "*.JPG" << "*.JPEG";
-
-	// Liste aller Dateien mit im Filter angegebenen Dateinamen erstellen
-	QFileInfoList _infoList = this->curDir.entryInfoList(filters);
-
-	// Vektor erstellen, in den alle Bilddateien mit ihrem absoluten Pfad eingetragen werden.
-	for(int in = 0; in < _infoList.length(); in++) {
-		this->dirVec.push_back(_infoList.at(in).absoluteFilePath());
-	}
-	this->vectorSet = true;
-}
-
-/*
- * wurde das Programm durch Doppelklick auf eine jp(e)g-Datei geöffnet, muss gleich dieses
- * Bild angezeigt werden.
- *
- * wird z.Zt. nicht weiter entwickelt
- */
-void ProtoWindow::setFirstImage()
-{
-	QString q = QString::fromStdString(this->argv[1]);
-	setCurrent(q);
-
-	// Bild anzeigen
-
-	QString fileName = (this->curDir.filePath(this->dirVec[this->current]));
-	// Dateiname sollte nicht leer sein...
-	if (showNextImage(fileName)) {
-
-		ui->backPushButton->setEnabled(true);
-		ui->forwardPushButton->setEnabled(true);
-		ui->showPushButton->setEnabled(true);
-	}
-}
-
-/*
- * findet heraus, welchen Index das als geoeffnete Bild hat.
- */
-void ProtoWindow::setCurrent(QString filename)
-{
-	// '\' durch '/' ersetzen:
-	for(int i = 0; i < filename.size(); i++)
-	{
-		if(filename[i] == '\\')
-			filename[i] = '/';
-	}
-
-	// Durch den Vektor mit allen Dateinamen gehen und mit 'filename' abgleichen.
-	for(int i = 0; i < this->dirVec.size(); i++)
-	{
-		if(curDir.filePath(this->dirVec[i]) == filename)
-		{
-			this->current = i;
-			return;
-		}
-	}
-	 // Falls der Dateiname nicht gefunden wurde... (was wahrscheinlich nur durch einen
-	 // Fehler an einer anderen Stelle im Programm passieren kann)
-	this->current = 0;
-}
-
-/*
- * Bild der Fenstergöße anpassen; bzw nach einem Zoomvorgang die Bildgröße
- * entsprechend verändern
- */
-void ProtoWindow::scaleImage(double factor)
-{
-	//Q_ASSERT(imageLabel->pixmap());
-	scaleFactor *= factor;
-	this->imageLabel->setZoomFactor(scaleFactor);
-
-	QImage newImage = imageLabel->MyImage();
-	const QSize newSize(static_cast<int>(static_cast<double>(newImage.width()) * factor), (static_cast<int>(static_cast<double>(newImage.height()) * factor)));
-	newImage.scaled(newSize);
-	imageLabel->setMyImage(newImage);
-	imageLabel->resize(scaleFactor * imageLabel->pixmap()->size());
-
-	adjustScrollBar(ui->scrollArea->horizontalScrollBar(), factor);
-	adjustScrollBar(ui->scrollArea->verticalScrollBar(), factor);
-
-	zoomInAct->setEnabled(scaleFactor < 3.0);
-	zoomOutAct->setEnabled(scaleFactor > /*0.333*/0.266);
-}
-
-/*
- * Bereits vorgegebene Funktion, die die Größe der Scrollbars der Fenstergröße anpasst
- */
-void ProtoWindow::adjustScrollBar(QScrollBar *scrollBar, double factor)
-{
-	scrollBar->setValue(int(factor * scrollBar->value() + ((factor - 1) * scrollBar->pageStep()/2)));
-}
-
-/*
- * Funktion, die genau den Faktor zurückgibt, der benötigt wird, um das Bild
- * im unveränderten Seitenverhältnis an die ScrollArea-Größe anzupassen
- */
-double ProtoWindow::fittingSize()
-{
-	QSize labelSize = this->imageLabel->size();
-	QSize areaSize = ui->scrollArea->size();
-
-	double labelSize_h = static_cast<double>(labelSize.height());
-	double labelSize_w = static_cast<double>(labelSize.width());
-	double areaSize_h = static_cast<double>(areaSize.height());
-	double areaSize_w = static_cast<double>(areaSize.width());
-
-	if (labelSize_h < areaSize_h && labelSize_w < areaSize_w) {
-		//Bild ist sowieso kleiner als ScrollArea
-		return 1.0;
-	}
-
-	if (((labelSize_h/labelSize_w)/(areaSize_h/areaSize_w)) > 1) {
-		// Höhe ist entscheidender Faktor
-		return (areaSize_h / labelSize_h)-0.001;
-	} else {
-		// Weite ist entscheidender Faktor
-		return (areaSize_w / labelSize_w)-0.001;
-	}
-}
-
-/*
- * Gemeinsame Funktion von open, on_backPushButton_clicked und on_forwardPushButton_clicked.
- *
- * sorgt dafür, dass Bild 'fileName' angezeigt wird.
- */
-bool ProtoWindow::showNextImage(QString fileName)
-{
-	// Label leeren (d.h. Bild und PersonSquares löschen)
-	this->imageLabel->clear();
-	this->imageLabel->clearSquares();
-
-	// TODO: sollte eig nicht mehr vorkommen, weil in open() schon abgefangen; und in den anderen Funktionen sollte fileName nie leer werden können
-	if (fileName.isEmpty()) {
-		return false;
-	}
-
-	QImage image(fileName);
-	if (image.isNull()) {
-		 QMessageBox::information(this, tr("EXIV Viewer"), tr("%1 konnte nicht geladen werden.").arg(fileName));
-		 return false;
-	}
-
-	this->filename = fileName;
-	this->currentImage = image;
-	this->imageLabel->setPixmap(QPixmap::fromImage(image));
-	scaleFactor = 1.0;
-
-	updateActions();
-
-	if(!fitToWindowAct->isChecked()) {
-		imageLabel->adjustSize();
-	}
-	scaleImage(fittingSize());
-
-	return true;
-}
-
-/*
- * Funktion, die eine verkettete Liste mit allen Informationen aus der
- * Text-Datei erstellt, damit diese ständig geändert werden können
- * und nur geschrieben werden müssen, wenn nötig.
- */
-void ProtoWindow::createStringList()
-{
-	QFile file("D:/Programmierung/Qt/filetest.txt");
-	if(file.open(QFile::ReadWrite)) {
-		stringArray = new Array[this->dirVec.size()];
-
-		// Erstellen und Initialisieren des stringArrays
-		for (int i = 0; i < this->dirVec.size(); i++) {
-			stringArray[i].fileName = this->dirVec[i];
-			stringArray[i].content = "";
-			stringArray[i].offset = -1;
-			stringArray[i].changed = false;
-		}
-
-		char *buf = new char[1024]; //1KB
-		qint64 size;
-		int offset = 0;
-
-		while((size = file.readLine(buf, 1024)) != -1) {
-			parseContentFromFile(QString::fromStdString(buf), offset);
-			offset = file.pos();
-
-			//Puffer neu erstellen
-			delete [] buf;
-			buf = new char[1024];
-		}
-		delete [] buf;
-	}
-	else {
-
-	}
-}
-
-/*
- * extrahiert die Informationen einer Zeile der Content-Datei.
- */
-QString ProtoWindow::parseContentFromFile(QString content, int offset) {
-
-	// Als erstes müssen die Rand-Symbole überprüft werden.
-	if (content[0] != '&' || content[content.size()-1] != '%') {
-		//Fehler: Falsche Kodierung in der Datei
-	}
-	int index = 0;
-	// Als nächstes muss der Punkt des Dateinamens gefunden werden
-	while (content[index] != '.') {
-		if (content[index++] == '$') {
-			//Fehler: ungültiger Dateiname, der nicht erkannt werden kann.
-		}
-		if (content[index] == '%') {
-			//Fehler: kein Dateiname
-		}
-	}
-	int fileNumber = -1;
-	if (content[index+3] == 'g' || content[index+3] == 'G') {
-		findFile(QString::fromStdString((content.toStdString()).substr(1,index+3)), fileNumber);
-		if (fileNumber == -1) {
-			//Fehler: ungültiger Dateiname
-		}
-	}
-	else {
-
-	}
-}
-
-/*
- * Überprüft, ob die Datei, die als String übergeben wird, eine Bilddatei
- * im dirVec ist. falls ja, wird true zurückgeliefert und der Index im dirVec
- * unter fileNumber gespeichert. Falls nicht, wird false zurückgeliefert.
- */
-bool ProtoWindow::findFile(QString content, int& fileNumber)
-{
-	for (int i = 0; i < this->dirVec.size(); i++) {
-		if (content == this->dirVec[i]) {
-			fileNumber = i;
-			return true;
-		}
-	}
-	return false;
-}
-
-void ProtoWindow::saveData()
-{
-
-}
-
-void ProtoWindow::cleanUp()
-{
-	delete stringArray;
-
 }
