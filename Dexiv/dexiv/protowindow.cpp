@@ -150,7 +150,7 @@ void ProtoWindow::scaleImage(double factor)
 	QImage newImage = imageLabel->MyImage();
 	const QSize newSize(static_cast<int>(static_cast<double>(newImage.width()) * factor), (static_cast<int>(static_cast<double>(newImage.height()) * factor)));
 	newImage.scaled(newSize);
-	imageLabel->setMyImage(newImage);
+	//imageLabel->setMyImage(newImage);
 	imageLabel->resize(scaleFactor * imageLabel->pixmap()->size());
 
 	adjustScrollBar(ui->scrollArea->horizontalScrollBar(), factor);
@@ -502,30 +502,29 @@ void ProtoWindow::invertImage()
 
 	this->currentImage.invertPixels();
 	this->imageChanged = true;
-	this->imageLabel->update();
+	this->imageLabel->setPixmap(QPixmap::fromImage(this->currentImage));
 }
 
 void ProtoWindow::rotateLeft()
 {
-	rotate(90);
-	this->imageLabel->setMyImage(this->currentImage);
-	this->imageLabel->repaint();
+	rotate(270);
 }
 
 void ProtoWindow::rotateRight()
 {
-	rotate(270);
-	this->imageLabel->setMyImage(this->currentImage);
-	this->imageLabel->repaint();
+	rotate(90);
 }
 
 void ProtoWindow::rotate(int angle)
 {
+	if (this->currentImage.isNull()) {
+		return;
+	}
+
 	QTransform rotating;
 	rotating.rotate(angle);
 	this->currentImage = this->currentImage.transformed(rotating);
-
-	//update();
+	this->imageLabel->setPixmap(QPixmap::fromImage(this->currentImage));
 }
 
 void ProtoWindow::about()

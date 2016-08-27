@@ -1,5 +1,6 @@
 #include "myImageLabel.h"
 #include <QTextItem>
+#include <QDebug>
 
 MyImageLabel::MyImageLabel(QLabel* parent)
 		: QLabel(parent), zoomFactor(1.0), zooming(false)
@@ -7,12 +8,14 @@ MyImageLabel::MyImageLabel(QLabel* parent)
 	setAttribute(Qt::WA_StaticContents);
 }
 
+
 void MyImageLabel::setMyImage(QImage _image)
 {
 	this->myImage = _image;
 	//resizeImage(&this->myImage, this->myImage.size().expandedTo(size()));
 	update();
 }
+
 
 void MyImageLabel::setMyPoint(QPoint p)
 {
@@ -29,10 +32,12 @@ void MyImageLabel::setZooming(bool z)
 	this->zooming = z;
 }
 
+
 QImage MyImageLabel::MyImage()
 {
 	return this->myImage;
 }
+
 
 QPoint MyImageLabel::MyPoint()
 {
@@ -70,6 +75,8 @@ void MyImageLabel::moveRect()
 
 void MyImageLabel::paintEvent(QPaintEvent* event)
 {
+	qDebug() << "paintEvent() called";
+
 	double fontCorrection = 1.0;
 	if(zoomFactor > 1.0)
 		fontCorrection = 0.8;
