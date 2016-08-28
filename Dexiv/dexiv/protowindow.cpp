@@ -17,7 +17,7 @@ ProtoWindow::ProtoWindow(QWidget *parent)
 
 	this->imageLabel = new MyImageLabel;
 	this->imageLabel->setBackgroundRole(QPalette::Base);
-	this->imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+	//this->imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 	this->imageLabel->setScaledContents(true);
 	this->imageLabel->setZooming(false);
 
@@ -29,7 +29,6 @@ ProtoWindow::ProtoWindow(QWidget *parent)
 	this->scaleFactor = 1.0;
 	this->curDir = QDir::current();
 	this->imageChanged = false;
-	this->timesRotated = 0;
 
 	this->showMaximized();
 
@@ -529,6 +528,11 @@ void ProtoWindow::rotate(int angle)
 	rotating.rotate(angle);
 	this->currentImage = this->currentImage.transformed(rotating);
 	this->imageLabel->setPixmap(QPixmap::fromImage(this->currentImage));
+
+	this->imageLabel->update();
+	this->imageLabel->updateGeometry();
+
+	//this->imageLabel->setGeometry(0,0,);
 }
 
 void ProtoWindow::about()

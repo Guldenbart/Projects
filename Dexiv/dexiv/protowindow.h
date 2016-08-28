@@ -63,7 +63,6 @@ private:
 	double scaleFactor;
 	QVector<ImageInfo> imgInfoVec;
 	bool imageChanged;
-	int timesRotated;
 
 	//Funktionen
 	void onNewFolder();
