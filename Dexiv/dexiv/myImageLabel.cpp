@@ -82,6 +82,7 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 		fontCorrection = 0.8;
 	else if(zoomFactor < 1.0)
 		fontCorrection = 1.2;
+
 	QLabel::paintEvent(event);
 	QPainter painter(this);
 	painter.begin(this);

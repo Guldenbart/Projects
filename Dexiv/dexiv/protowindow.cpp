@@ -463,26 +463,29 @@ void ProtoWindow::print()
 
 void ProtoWindow::zoomIn()
 {
-	//this->imageLabel->setZooming(true);
 	scaleImage(1.25);
-	//this->imageLabel->setZooming(false);
+
+	this->imageLabel->update();
 	updateUI();
 }
 
 void ProtoWindow::zoomOut()
 {
-	//this->imageLabel->setZooming(true);
 	scaleImage(0.8);
-	//this->imageLabel->setZooming(false);
+
+	this->imageLabel->update();
 	updateUI();
 }
 
 void ProtoWindow::normalSize()
 {
-//	this->scaleFactor = fittingSize();
 	scaleImage(fittingSize());
 
 	//imageLabel->adjustSize();
+	//update();
+	this->imageLabel->update();
+	//repaint();
+	//this->imageLabel->repaint();
 	updateUI();
 }
 
@@ -491,6 +494,7 @@ void ProtoWindow::actualSize()
 	this->scaleFactor = 1.0;
 	scaleImage(1.0);
 
+	this->imageLabel->update();
 	updateUI();
 }
 
