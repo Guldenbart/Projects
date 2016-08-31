@@ -3,10 +3,38 @@
 #include <QDebug>
 
 MyImageLabel::MyImageLabel(QLabel* parent)
-		: QLabel(parent), zoomFactor(1.0), zooming(false)
+		: QLabel(parent), zoomFactor(1.0)
 {
 	setAttribute(Qt::WA_StaticContents);
 }
+
+
+bool MyImageLabel::eventFilter(QObject *watched, QEvent *event)
+{
+	// This function repeatedly call for those QObjects
+		// which have installed eventFilter (Step 2)
+
+	qDebug() << "eventFilter aufgerufen";
+
+	//if (watched->objectName().contains("personSquare")) {
+	if (qobject_cast<PersonSquare*>(watched) != NULL) {
+		if (event->type() == QEvent::Enter) {
+			qDebug() << "Objekt erkannt";
+			// Whatever you want to do when mouse goes over targetPushButton
+			((PersonSquare*)watched)->setHover(true);
+			this->update();
+		}
+		if (event->type() == QEvent::Leave) {
+			((PersonSquare*)watched)->setHover(false);
+			this->update();
+		}
+		return true;
+	}else {
+		// pass the event on to the parent class
+		return QWidget::eventFilter(watched, event);
+	}
+}
+
 
 
 void MyImageLabel::setMyImage(QImage _image)
@@ -17,19 +45,9 @@ void MyImageLabel::setMyImage(QImage _image)
 }
 
 
-void MyImageLabel::setMyPoint(QPoint p)
+void MyImageLabel::setZoomFactor(double factor)
 {
-	this->myPoint = p;
-}
-
-void MyImageLabel::setZoomFactor(double _z)
-{
-	this->zoomFactor = _z;
-}
-
-void MyImageLabel::setZooming(bool z)
-{
-	this->zooming = z;
+	this->zoomFactor = factor;
 }
 
 
@@ -39,24 +57,26 @@ QImage MyImageLabel::MyImage()
 }
 
 
-QPoint MyImageLabel::MyPoint()
-{
-	return this->myPoint;
-}
-
 double MyImageLabel::ZoomFactor()
 {
 	return this->zoomFactor;
 }
 
-bool MyImageLabel::Zooming()
+
+void MyImageLabel::addSquare(PersonSquare* personSquare)
 {
-	return this->zooming;
+	personSquare->installEventFilter(this);
+	this->squareVec.push_back(personSquare);
+	personSquare->setIndex(this->squareVec.size());
+
+	this->update();
 }
 
-void MyImageLabel::addSquare(PersonSquare* ps)
+
+void MyImageLabel::removeSquare(int index)
 {
-	this->squareVec.push_back(ps);
+	this->squareVec.remove(index);
+	this->update();
 }
 
 /*
@@ -69,13 +89,12 @@ void MyImageLabel::clearSquares()
 
 void MyImageLabel::moveRect()
 {
-	this->zooming = true;
 	update();
 }
 
 void MyImageLabel::paintEvent(QPaintEvent* event)
 {
-	qDebug() << "paintEvent() called";
+	//qDebug() << "paintEvent() called";
 
 	double fontCorrection = 1.0;
 	if(zoomFactor > 1.0)
@@ -85,8 +104,11 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 
 	QLabel::paintEvent(event);
 	QPainter painter(this);
-	painter.begin(this);
-	painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
+	if (!painter.isActive()) {
+		painter.begin(this);
+	}
+
+	//painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
 	painter.setFont(QFont("Times", static_cast<int>(20.0 * (zoomFactor * fontCorrection)), 2));
 
 	for(int i = 0; i < this->squareVec.size(); i++)
@@ -95,6 +117,11 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 		int _y = static_cast<int>(static_cast<double>((this->squareVec[i]->getY())-30)*zoomFactor);
 		int _w = static_cast<int>(60.0 * zoomFactor);
 		int _h = static_cast<int>(60.0 * zoomFactor);
+		if (this->squareVec[i]->getHover()) {
+			painter.setPen(QPen(Qt::blue, 2, Qt::SolidLine));
+		} else {
+			painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
+		}
 		painter.drawRect(_x, _y, _w, _h);
 		const QString qs = this->squareVec[i]->getName();
 		painter.drawText(_x-10, _y-10, qs);

@@ -11,19 +11,17 @@ class MyImageLabel : public QLabel
 {
 public:
 	MyImageLabel(QLabel* parent = 0);
+	bool eventFilter(QObject *watched, QEvent *event);
 	//setter
 	void setMyImage(QImage i);
-	void setMyPoint(QPoint p);
-	void setZoomFactor(double z);
-	void setZooming(bool z);
+	void setZoomFactor(double factor);
 
 	//getter
 	QImage MyImage();
-	QPoint MyPoint();
 	double ZoomFactor();
-	bool Zooming();
 
-	void addSquare(PersonSquare* ps);
+	void addSquare(PersonSquare* personSquare);
+	void removeSquare(int index);
 	void clearSquares();
 	void moveRect();
 
@@ -34,9 +32,7 @@ protected:
 private:
 	//Daten
 	QImage myImage;
-	QPoint myPoint;
 	double zoomFactor;
-	bool zooming;
 	QVector<PersonSquare*> squareVec;
 
 };

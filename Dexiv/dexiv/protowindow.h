@@ -44,9 +44,6 @@ public:
 	void setFirstImage();
 	void mouseDoubleClickEvent(QMouseEvent* e);
 
-protected:
-	void paintEvent(QPaintEvent* e);
-
 private:
 
 	//Daten
@@ -73,7 +70,7 @@ private:
 	void updateUI();
 	void scaleImage(double factor);
 	void adjustScrollBar(QScrollBar *scrollBar, double factor);
-	double fittingSize();
+	double fittingSize(QString from);
 	bool showNextImage(QString filename);
 	QString parseContentFromFile(QString content);
 	bool findFile(QString content, int& fileNumber);

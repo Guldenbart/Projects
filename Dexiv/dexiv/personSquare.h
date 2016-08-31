@@ -21,17 +21,20 @@ class PersonSquare : public QWidget
 	Q_OBJECT
 
 public:
-	PersonSquare(QWidget* parent = 0, MyImageLabel* l = 0, int _x = 0, int _y = 0, QString _text = "");
+	PersonSquare(QWidget* parent = 0, MyImageLabel* l = 0, int xCoord = 0, int yCoord = 0, QString _text = "");
 	int getX();
 	int getY();
 	QString getName();
-	void setX(int _x);
-	void setY(int _y);
+	bool getHover();
+	//void setX(int _x);
+	//void setY(int _y);
+	void setIndex(int i);
+	void setHover(bool h);
 	QString packData();
 
 private:
 	//Zeiger auf ImageLabel
-	MyImageLabel* l;
+	MyImageLabel* label;
 
 	/**
 	 * @brief x X coordinate of the PersonSquare
@@ -47,6 +50,19 @@ private:
 	 * @brief description of the PersonSquare
 	 */
 	QString name;
+
+	/**
+	 * @brief index of this PersonSquare in the QVector
+	 */
+	int index;
+
+	/**
+	 * @brief hover Tells if the mouse cursor is hovering over this PersonSquare
+	 */
+	bool hover;
+
+protected:
+
 };
 
 #endif // PERSONSQUARE_H

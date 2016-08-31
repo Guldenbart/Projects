@@ -17,9 +17,8 @@ ProtoWindow::ProtoWindow(QWidget *parent)
 
 	this->imageLabel = new MyImageLabel;
 	this->imageLabel->setBackgroundRole(QPalette::Base);
-	//this->imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+	this->imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 	this->imageLabel->setScaledContents(true);
-	this->imageLabel->setZooming(false);
 
 	ui->scrollArea->setBackgroundRole(QPalette::Dark);
 	ui->scrollArea->setWidgetResizable(false);
@@ -168,9 +167,13 @@ void ProtoWindow::adjustScrollBar(QScrollBar *scrollBar, double factor)
  * Funktion, die genau den Faktor zurückgibt, der benötigt wird, um das Bild
  * im unveränderten Seitenverhältnis an die ScrollArea-Größe anzupassen
  */
-double ProtoWindow::fittingSize()
+double ProtoWindow::fittingSize(QString from)
 {
+	qDebug() << "########################################";
+	qDebug() << "from " << from;
+
 	if (this->currentImage.isNull()) {
+		qDebug() << "RESULT: 1.0 (no Image)";
 		return 1.0;
 	}
 
@@ -182,16 +185,24 @@ double ProtoWindow::fittingSize()
 	double areaSize_h = static_cast<double>(areaSize.height());
 	double areaSize_w = static_cast<double>(areaSize.width());
 
+	qDebug() << "label h: " << labelSize_h;
+	qDebug() << "label w: " << labelSize_w;
+	qDebug() << "area h: " << areaSize_h;
+	qDebug() << "area w: " << areaSize_w;
+
 	if (labelSize_h < areaSize_h && labelSize_w < areaSize_w) {
-		//Bild ist sowieso kleiner als ScrollArea
+		// Bild ist sowieso kleiner als ScrollArea
+		qDebug() << "RESULT: 1.0 (Bild ist sowieso kleiner als ScrollArea)";
 		return 1.0;
 	}
 
 	if (((labelSize_h/labelSize_w)/(areaSize_h/areaSize_w)) > 1) {
 		// Höhe ist entscheidender Faktor
-		return (areaSize_h / labelSize_h)-0.001;
+		qDebug() << "RESULT: " << (areaSize_h / labelSize_h)-0.001 << "(Höhe ist entscheidender Faktor)";
+		return (areaSize_h / labelSize_h)-0.0015;
 	} else {
 		// Weite ist entscheidender Faktor
+		qDebug() << "RESULT: " << (areaSize_w / labelSize_w)-0.001 << "(Weite ist entscheidender Faktor)";
 		return (areaSize_w / labelSize_w)-0.001;
 	}
 }
@@ -224,10 +235,14 @@ bool ProtoWindow::showNextImage(QString fileName)
 
 	this->currentImage = image;
 	this->imageLabel->setPixmap(QPixmap::fromImage(image));
+	//this->imageLabel->update();
 
-	scaleImage(fittingSize());
+	//scaleImage(fittingSize("showNextImage"));
+
+	//this->imageLabel->update();
 
 	updateUI();
+	scaleImage(fittingSize("showNextImage"));
 	return true;
 }
 
@@ -388,10 +403,9 @@ void ProtoWindow::createActions()
 
 void ProtoWindow::updateUI()
 {
-	double fs = fittingSize();
 	zoomInAct->setEnabled(this->scaleFactor<4.0 && !this->currentImage.isNull());
 	zoomOutAct->setEnabled(this->scaleFactor>0.25 && !this->currentImage.isNull());
-	normalSizeAct->setEnabled(fittingSize()!=1.0 && !this->currentImage.isNull());
+	normalSizeAct->setEnabled(fittingSize("updateUI")!=1.0 && !this->currentImage.isNull());
 	actualSizeAct->setEnabled(this->scaleFactor!=1.0 && !this->currentImage.isNull());
 
 	invertImageAct->setEnabled(!this->currentImage.isNull());
@@ -432,6 +446,7 @@ void ProtoWindow::open()
 		ui->forwardPushButton->setEnabled(true);
 		ui->showPushButton->setEnabled(true);
 
+		scaleImage(fittingSize("on_backPushButton_clicked"));
 		updateUI();
 	}
 }
@@ -478,7 +493,7 @@ void ProtoWindow::zoomOut()
 
 void ProtoWindow::normalSize()
 {
-	scaleImage(fittingSize());
+	scaleImage(fittingSize("normalSize"));
 
 	//imageLabel->adjustSize();
 	//update();
@@ -529,10 +544,15 @@ void ProtoWindow::rotate(int angle)
 	this->currentImage = this->currentImage.transformed(rotating);
 	this->imageLabel->setPixmap(QPixmap::fromImage(this->currentImage));
 
+	//this->imageLabel->update();
+	//this->imageLabel->updateGeometry();
+
+	//scaleImage(fittingSize());
 	this->imageLabel->update();
-	this->imageLabel->updateGeometry();
 
 	//this->imageLabel->setGeometry(0,0,);
+
+	updateUI();
 }
 
 void ProtoWindow::about()
@@ -579,6 +599,9 @@ void ProtoWindow::on_backPushButton_clicked()
 	QString fileName = this->dirVec[current];
 
 	showNextImage(fileName);
+
+	scaleImage(fittingSize("on_backPushButton_clicked"));
+	updateUI();
 }
 
 /*
@@ -605,6 +628,9 @@ void ProtoWindow::on_forwardPushButton_clicked()
 	QString fileName = this->dirVec[current];
 
 	showNextImage(fileName);
+
+	scaleImage(fittingSize("on_backPushButton_clicked"));
+	updateUI();
 }
 
 void ProtoWindow::on_showPushButton_clicked()
@@ -630,21 +656,23 @@ void ProtoWindow::on_showPushButton_clicked()
 	QSize imageSize = this->currentImage.size();
 	QSize labelSize = this->imageLabel->size();
 	QSize areaSize = ui->scrollArea->size();
-	std::ofstream fout("Groessen.txt");
+	//std::ofstream fout("Groessen.txt");
 
-	fout << "Bild-Höhe: ";
-	fout << imageSize.height();
-	fout << "\nBild-Weite: ";
-	fout << imageSize.width();
-	fout << "\nLabel-Höhe: ";
-	fout << labelSize.height();
-	fout << "\nLabel-Weite: ";
-	fout << labelSize.width();
-	fout << "\nArea-Höhe: ";
-	fout << areaSize.height();
-	fout << "\nArea-Weite: ";
-	fout << areaSize.width();
-	fout.close();
+	text.append("\nBild-Höhe: ");
+	text.append(QString::number(imageSize.height()));
+	text.append("\nBild-Weite: ");
+	text.append(QString::number(imageSize.width()));
+	text.append("\nLabel-Höhe: ");
+	text.append(QString::number(labelSize.height()));
+	text.append("\nLabel-Weite: ");
+	text.append(QString::number(labelSize.width()));
+	text.append("\nArea-Höhe: ");
+	text.append(QString::number(areaSize.height()));
+	text.append("\nArea-Weite: ");
+	text.append(QString::number(areaSize.width()));
+	//fout.close();
+	QString on = (ui->backPushButton->objectName());
+	text.append(on);
 
 	ui->toPutPlainTextEdit->setPlainText(text);
 }
@@ -655,6 +683,7 @@ void ProtoWindow::on_showPushButton_clicked()
  */
 void ProtoWindow::mouseDoubleClickEvent(QMouseEvent* event)
 {
+	/*
 	QPoint p = event->pos();
 
 	// Berechnen, ob der Doppelklick innerhalb des Bildes gemacht wurde
@@ -673,21 +702,7 @@ void ProtoWindow::mouseDoubleClickEvent(QMouseEvent* event)
 		PersonSquare* ps = new PersonSquare(0, this->imageLabel, _x, _y, text);
 
 		this->imageLabel->addSquare(ps);
-		this->imageLabel->update();
+		//this->imageLabel->update();
 	}
-}
-
-void ProtoWindow::paintEvent(QPaintEvent* event)
-{
-	/*std::ofstream fout("test.txt");
-	fout << "paintEvent aufgerufen!";
-
-	QPainter painter(ui->scrollArea);
-	painter.begin(ui->scrollArea);
-	painter.setPen(Qt::SolidLine);
-	painter.setBrush(Qt::black);
-	painter.drawRect(100, 100, 50, 50);
-	fout << "Viereck gemalt!";
-	fout.close();
-	painter.drawImage(QPoint(11, 33), this->currentImage);*/
+	*/
 }
