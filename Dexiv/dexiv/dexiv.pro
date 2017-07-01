@@ -15,7 +15,8 @@ TEMPLATE = app
 SOURCES += main.cpp \
     protowindow.cpp \
     personSquare.cpp \
-    myImageLabel.cpp
+    myImageLabel.cpp \
+    imageinfo.cpp
 
 HEADERS += protowindow.h \
     personSquare.h \
@@ -23,3 +24,13 @@ HEADERS += protowindow.h \
     imageinfo.h
 
 FORMS    += protowindow.ui
+
+win32 {
+#header
+#INCLUDEPATH += $$quote(C:/MinGW/msys/1.0/local/include)
+#INCLUDEPATH += $$quote(C:/MinGW/msys/1.0/local/include/exiv2)
+#libs
+#LIBS += $$quote(C:/MinGW/msys/1.0/local/lib/libexpat.dll.a)
+#LIBS += $$quote(C:/MinGW/msys/1.0/local/lib/libz.dll.a)
+#LIBS += $$quote(C:/MinGW/msys/1.0/local/lib/libexiv2.dll.a)
+}

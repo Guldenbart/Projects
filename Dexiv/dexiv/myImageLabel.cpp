@@ -9,6 +9,20 @@ MyImageLabel::MyImageLabel(QLabel* parent)
 }
 
 
+MyImageLabel::~MyImageLabel()
+{
+	/*
+	for (auto e : this->imageInfoVec.keys()) {
+		delete this->imageInfoVec.begin();
+	}
+	*/
+	for (auto it = this->imageInfoVec.begin(); it != this->imageInfoVec.end(); /* don't increment here */) {
+		it = this->imageInfoVec.erase(it);
+		// TODO hier schauen, ob Destruktor aufgerufen wird!
+	}
+}
+
+
 bool MyImageLabel::eventFilter(QObject *watched, QEvent *event)
 {
 	// This function repeatedly call for those QObjects
@@ -36,7 +50,33 @@ bool MyImageLabel::eventFilter(QObject *watched, QEvent *event)
 }
 
 
+QSize MyImageLabel::sizeHint() const
+{
+	QSize retVal = QLabel::sizeHint();
+	return retVal;
+}
 
+
+/* ************************************************************************************************
+ * GETTER
+ * ************************************************************************************************
+ */
+QImage MyImageLabel::getMyImage()
+{
+	return this->myImage;
+}
+
+
+double MyImageLabel::getZoomFactor()
+{
+	return this->zoomFactor;
+}
+
+
+/* ************************************************************************************************
+ * SETTER
+ * ************************************************************************************************
+ */
 void MyImageLabel::setMyImage(QImage _image)
 {
 	this->myImage = _image;
@@ -51,16 +91,10 @@ void MyImageLabel::setZoomFactor(double factor)
 }
 
 
-QImage MyImageLabel::MyImage()
-{
-	return this->myImage;
-}
-
-
-double MyImageLabel::ZoomFactor()
-{
-	return this->zoomFactor;
-}
+/* ************************************************************************************************
+ * 'PERSONSQUARES'-METHODEN
+ * ************************************************************************************************
+ */
 
 
 void MyImageLabel::addSquare(PersonSquare* personSquare)
@@ -79,27 +113,92 @@ void MyImageLabel::removeSquare(int index)
 	this->update();
 }
 
-/*
+/**
  * löscht alle PersonSquares aus dem Vektor
+ * TODO prüfen, ob Dekonstruktoren aufgerufen werden. Wenn nicht, müssen alle Elemente einzeln abgebaut werden.
+ * Evtl kann auf clear() überschrieben werden; dann kann die Funktionalität dieser Methode da rein
  */
-void MyImageLabel::clearSquares()
+void MyImageLabel::clearImageInfoVec()
 {
-	this->squareVec.clear();
+	this->imageInfoVec.clear();
 }
+
 
 void MyImageLabel::moveRect()
 {
 	update();
 }
 
+
+/**
+ * @brief MyImageLabel::processLine verarbeitet Meta-Daten einer Bild-Datei.
+ * @param line QString, der Meta-Daten enthält.
+ * @param currentDir Ordner-Pfad, in dem wir uns gerade befinden.
+ */
+void MyImageLabel::processLine(QString line, QDir currentDir)
+{
+	// Als erstes müssen die Rand-Symbole überprüft werden.
+	if (line[0] != '&' || line[line.size()-1] != '&') {
+		qDebug() << "Fehler beim Parsen: Falsche Kodierung der gesamten Zeile! [" << line << "]";
+		return;
+	}
+	line = line.remove(line.length()-1, 1).remove(0,1);
+
+	// Als nächstes muss der Dateiname gefunden werden
+	QString filename = line.section('$', 0, 0);
+	if (!QFile.exists(currentDir.absoluteFilePath(filename))) {
+		qDebug() << "Fehler beim Parsen: Genannte Datei " << filename << " nicht im aktuellen Ordner " << currentDir << " vorhanden!";
+		return;
+	}
+
+	// passendes ImageInfo suchen
+	QMap<QString, ImageInfo*>::iterator it = this->imageInfoVec.find(filename);
+
+	// schauen, ob Dateiname schon vorhanden
+	if (it == this->imageInfoVec.end()) {
+		// wenn nicht, erstellen
+		ImageInfo* imageInfo = new ImageInfo(filename);
+		it = this->imageInfoVec.insert(filename, imageInfo);
+	}
+
+	ImageInfo* imageInfo = it.value();
+
+	// (Zeile ab dem ersten '$')
+	QString payloadString = line.section('$', 1, -1);
+	int dollarCount = payloadString.count('$');
+
+	for (int i=0; i<dollarCount+1; i++) {
+		QString metaDataString = payloadString.section('$', i, i);
+		int xCoord = metaDataString.section('%', 0, 0).toInt();
+		int yCoord = metaDataString.section('%', 1, 1).toInt();
+		QString text = metaDataString.section('%', 2, 2).toInt();
+
+		PersonSquare* personSquare = new PersonSquare(0, this, xCoord, yCoord, text);
+		personSquare->installEventFilter(this);
+
+		imageInfo->addPersonSquare(square);
+	}
+}
+
+
+/**
+ * @brief MyImageLabel::setCurrentImageInfo
+ * @param filename
+ */
+void MyImageLabel::setCurrentImageInfo(QString filename)
+{
+	this->curImageInfo = this->imageInfoVec.find(filename);
+}
+
+
 void MyImageLabel::paintEvent(QPaintEvent* event)
 {
 	//qDebug() << "paintEvent() called";
 
 	double fontCorrection = 1.0;
-	if(zoomFactor > 1.0)
+	if(this->zoomFactor > 1.0)
 		fontCorrection = 0.8;
-	else if(zoomFactor < 1.0)
+	else if(this->zoomFactor < 1.0)
 		fontCorrection = 1.2;
 
 	QLabel::paintEvent(event);
@@ -108,15 +207,22 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 		painter.begin(this);
 	}
 
-	//painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
-	painter.setFont(QFont("Times", static_cast<int>(20.0 * (zoomFactor * fontCorrection)), 2));
+	if (this->curImageInfo == this->imageInfoVec.end()) {
+		// keine Metadaten für das aktuelle Bild vorhanden
+		painter.end();
+		return;
+	}
 
-	for(int i = 0; i < this->squareVec.size(); i++)
+	//painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
+	painter.setFont(QFont("Times", static_cast<int>(20.0 * (this->zoomFactor * fontCorrection)), 2));
+
+	QVector<PersonSquare*>* personSquares = this->curImageInfo.value()->getPersonSquares();
+	for(int i = 0; i < personSquares->size(); i++)
 	{
-		int _x = static_cast<int>(static_cast<double>((this->squareVec[i]->getX())-30)*zoomFactor);
-		int _y = static_cast<int>(static_cast<double>((this->squareVec[i]->getY())-30)*zoomFactor);
-		int _w = static_cast<int>(60.0 * zoomFactor);
-		int _h = static_cast<int>(60.0 * zoomFactor);
+		int _x = static_cast<int>(static_cast<double>((this->squareVec[i]->getX())-30)*this->zoomFactor);
+		int _y = static_cast<int>(static_cast<double>((this->squareVec[i]->getY())-30)*this->zoomFactor);
+		int _w = static_cast<int>(60.0 * this->zoomFactor);
+		int _h = static_cast<int>(60.0 * this->zoomFactor);
 		if (this->squareVec[i]->getHover()) {
 			painter.setPen(QPen(Qt::blue, 2, Qt::SolidLine));
 		} else {
