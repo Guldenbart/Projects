@@ -54,6 +54,11 @@ private:
 	/**
 	 * @brief index of this PersonSquare in the QVector
 	 */
+	/*
+	 * Wahrscheinlich wird der Index gebraucht, wenn das PersonSquare direkt ein Event bekommt,
+	 * und man Änderungen vornehmen muss => dann muss man wissen, an welcher Stelle des QVectors
+	 * in der ImageInfo dieses PersonSquare liegt.
+	 */
 	int index;
 
 	/**

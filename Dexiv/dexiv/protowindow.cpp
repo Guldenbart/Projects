@@ -266,12 +266,16 @@ bool ProtoWindow::showNextImage(QString fileName)
 		 return false;
 	}
 
+	// TODO beides setzen??
 	this->imageLabel->setPixmap(QPixmap::fromImage(image));
 	this->imageLabel->setMyImage(image);
 
 	if (this->isAutoNormalSize) {
 		scaleImage(fittingSize("showNextImage"));
 	}
+
+	this->imageLabel->setCurrentImageInfo(fileName);
+
 	return true;
 }
 

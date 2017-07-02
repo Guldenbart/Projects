@@ -26,6 +26,7 @@ public:
 
 	// PersonSquare-Methoden
 	void addSquare(PersonSquare* personSquare);
+	void addSquare(PersonSquare* personSquare, QString filename);
 	void removeSquare(int index); //<-TODO
 	void clearImageInfoVec();
 	void moveRect();

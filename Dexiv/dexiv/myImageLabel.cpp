@@ -97,6 +97,11 @@ void MyImageLabel::setZoomFactor(double factor)
  */
 
 
+/**
+ * @brief MyImageLabel::addSquare Fügt dem aktuellen Bild ein PersonSquare hinzu.
+ * Wird von protowindow aufgerufen, wenn das betroffene Bild gerade geöffnet/bearbeitet wird.
+ * @param personSquare PersonSquare, der eingefügt werden soll.
+ */
 void MyImageLabel::addSquare(PersonSquare* personSquare)
 {
 	personSquare->installEventFilter(this);
@@ -104,6 +109,23 @@ void MyImageLabel::addSquare(PersonSquare* personSquare)
 	personSquare->setIndex(this->squareVec.size());
 
 	this->update();
+
+	addSquare(personSquare, this->curImageInfo.value()->getFileName());
+}
+
+
+/**
+ * @brief MyImageLabel::addSquare Fügt dem aktuellen Bild ein PersonSquare hinzu.
+ * Wird von parseLine aufgerufen, wenn während dem Laden die Struktur aufgebaut wird.
+ * @param personSquare PersonSquare, der eingefügt werden soll.
+ * @param filename
+ */
+void MyImageLabel::addSquare(PersonSquare *personSquare, QString filename)
+{
+	personSquare->installEventFilter(this);
+	ImageInfo* imageInfo = this->imageInfoVec.find(filename).value();
+	int index = imageInfo->addPersonSquare(personSquare);
+
 }
 
 
@@ -146,7 +168,7 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 
 	// Als nächstes muss der Dateiname gefunden werden
 	QString filename = line.section('$', 0, 0);
-	if (!QFile.exists(currentDir.absoluteFilePath(filename))) {
+	if (!QFile::exists(currentDir.absoluteFilePath(filename))) {
 		qDebug() << "Fehler beim Parsen: Genannte Datei " << filename << " nicht im aktuellen Ordner " << currentDir << " vorhanden!";
 		return;
 	}
@@ -174,20 +196,27 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 		QString text = metaDataString.section('%', 2, 2).toInt();
 
 		PersonSquare* personSquare = new PersonSquare(0, this, xCoord, yCoord, text);
-		personSquare->installEventFilter(this);
+		//personSquare->installEventFilter(this);
 
-		imageInfo->addPersonSquare(square);
+		imageInfo->addPersonSquare(personSquare);
 	}
 }
 
 
 /**
- * @brief MyImageLabel::setCurrentImageInfo
- * @param filename
+ * @brief MyImageLabel::setCurrentImageInfo Setzt curImageInfo auf den entsprechenden Eintrag im imageinfoVec.
+ * @param filename Dateiname, nach dem gesucht wird.
  */
 void MyImageLabel::setCurrentImageInfo(QString filename)
 {
-	this->curImageInfo = this->imageInfoVec.find(filename);
+	// TODO überprüfen, ob das geht mit Zuweisung und Vergleich gleichzeitig.
+	if (this->curImageInfo = this->imageInfoVec.find(filename) == this->imageInfoVec.end()) {
+
+		// ImageInfo für Bild existiert noch nicht
+		ImageInfo* imageInfo = new ImageInfo(filename);
+		// TODO überprüfen, ob nach 'insert' der iterator richtig gesetzt wird.
+		this->curImageInfo = this->imageInfoVec.insert(filename, imageInfo);
+	}
 }
 
 
@@ -219,22 +248,24 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 	QVector<PersonSquare*>* personSquares = this->curImageInfo.value()->getPersonSquares();
 	for(int i = 0; i < personSquares->size(); i++)
 	{
-		int _x = static_cast<int>(static_cast<double>((this->squareVec[i]->getX())-30)*this->zoomFactor);
-		int _y = static_cast<int>(static_cast<double>((this->squareVec[i]->getY())-30)*this->zoomFactor);
+		int _x = static_cast<int>(static_cast<double>((personSquares[i]->getX())-30)*this->zoomFactor);
+		int _y = static_cast<int>(static_cast<double>((personSquares[i]->getY())-30)*this->zoomFactor);
 		int _w = static_cast<int>(60.0 * this->zoomFactor);
 		int _h = static_cast<int>(60.0 * this->zoomFactor);
-		if (this->squareVec[i]->getHover()) {
+		if (personSquares[i]->getHover()) {
 			painter.setPen(QPen(Qt::blue, 2, Qt::SolidLine));
 		} else {
 			painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
 		}
 		painter.drawRect(_x, _y, _w, _h);
-		const QString qs = this->squareVec[i]->getName();
+		const QString qs = personSquares[i]->getName();
 		painter.drawText(_x-10, _y-10, qs);
 	}
 	painter.end();
 }
 
+
+// TODO kann weg, wenn nur Superklasse aufgerufen wird!
 void MyImageLabel::resizeEvent(QResizeEvent* event)
 {
 	QLabel::resizeEvent(event);
