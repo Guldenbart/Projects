@@ -12,12 +12,12 @@ MyImageLabel::MyImageLabel(QLabel* parent)
 MyImageLabel::~MyImageLabel()
 {
 	/*
-	for (auto e : this->imageInfoVec.keys()) {
-		delete this->imageInfoVec.begin();
+	for (auto e : this->imageInfoMap.keys()) {
+		delete this->imageInfoMap.begin();
 	}
 	*/
-	for (auto it = this->imageInfoVec.begin(); it != this->imageInfoVec.end(); /* don't increment here */) {
-		it = this->imageInfoVec.erase(it);
+	for (auto it = this->imageInfoMap.begin(); it != this->imageInfoMap.end(); /* don't increment here */) {
+		it = this->imageInfoMap.erase(it);
 		// TODO hier schauen, ob Destruktor aufgerufen wird!
 	}
 }
@@ -123,7 +123,7 @@ void MyImageLabel::addSquare(PersonSquare* personSquare)
 void MyImageLabel::addSquare(PersonSquare *personSquare, QString filename)
 {
 	personSquare->installEventFilter(this);
-	ImageInfo* imageInfo = this->imageInfoVec.find(filename).value();
+	ImageInfo* imageInfo = this->imageInfoMap.find(filename).value();
 	int index = imageInfo->addPersonSquare(personSquare);
 
 }
@@ -142,7 +142,7 @@ void MyImageLabel::removeSquare(int index)
  */
 void MyImageLabel::clearImageInfoVec()
 {
-	this->imageInfoVec.clear();
+	this->imageInfoMap.clear();
 }
 
 
@@ -174,13 +174,13 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 	}
 
 	// passendes ImageInfo suchen
-	QMap<QString, ImageInfo*>::iterator it = this->imageInfoVec.find(filename);
+	QMap<QString, ImageInfo*>::iterator it = this->imageInfoMap.find(filename);
 
 	// schauen, ob Dateiname schon vorhanden
-	if (it == this->imageInfoVec.end()) {
+	if (it == this->imageInfoMap.end()) {
 		// wenn nicht, erstellen
 		ImageInfo* imageInfo = new ImageInfo(filename);
-		it = this->imageInfoVec.insert(filename, imageInfo);
+		it = this->imageInfoMap.insert(filename, imageInfo);
 	}
 
 	ImageInfo* imageInfo = it.value();
@@ -204,18 +204,18 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 
 
 /**
- * @brief MyImageLabel::setCurrentImageInfo Setzt curImageInfo auf den entsprechenden Eintrag im imageinfoVec.
+ * @brief MyImageLabel::setCurrentImageInfo Setzt curImageInfo auf den entsprechenden Eintrag im imageInfoMap.
  * @param filename Dateiname, nach dem gesucht wird.
  */
 void MyImageLabel::setCurrentImageInfo(QString filename)
 {
 	// TODO überprüfen, ob das geht mit Zuweisung und Vergleich gleichzeitig.
-	if (this->curImageInfo = this->imageInfoVec.find(filename) == this->imageInfoVec.end()) {
+	if (this->curImageInfo = this->imageInfoMap.find(filename) == this->imageInfoMap.end()) {
 
 		// ImageInfo für Bild existiert noch nicht
 		ImageInfo* imageInfo = new ImageInfo(filename);
 		// TODO überprüfen, ob nach 'insert' der iterator richtig gesetzt wird.
-		this->curImageInfo = this->imageInfoVec.insert(filename, imageInfo);
+		this->curImageInfo = this->imageInfoMap.insert(filename, imageInfo);
 	}
 }
 
@@ -236,7 +236,7 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 		painter.begin(this);
 	}
 
-	if (this->curImageInfo == this->imageInfoVec.end()) {
+	if (this->curImageInfo == this->imageInfoMap.end()) {
 		// keine Metadaten für das aktuelle Bild vorhanden
 		painter.end();
 		return;

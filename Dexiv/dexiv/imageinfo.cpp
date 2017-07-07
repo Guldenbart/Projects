@@ -66,7 +66,8 @@ void ImageInfo::setLoaded(const bool loaded)
  * 'PERSONSQUARES'-METHODEN
  * ************************************************************************************************
  */
-void ImageInfo::addPersonSquare(PersonSquare* personSquare)
+int ImageInfo::addPersonSquare(PersonSquare* personSquare)
 {
 	this->personSquares.push_back(personSquare);
+	return this->personSquares.size() - 1;
 }

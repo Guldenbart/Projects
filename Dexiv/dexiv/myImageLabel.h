@@ -55,15 +55,15 @@ private:
 	double zoomFactor;
 
 	/**
-	 * @brief imageInfoVec Für jedes Bild im aktuellen Verzeichnis einen Eintrag.
+	 * @brief imageInfoMap Für jedes Bild im aktuellen Verzeichnis einen Eintrag.
 	 *
 	 * key: Dateiname
 	 * value: ImageInfo* mit Meta-Daten dieser Datei
 	 */
-	QMap<QString, ImageInfo*> imageInfoVec; //<-TODO richtig anlegen und löschen, alle Funktionen zur Manipulation
+	QMap<QString, ImageInfo*> imageInfoMap; //<-TODO richtig anlegen und löschen, alle Funktionen zur Manipulation
 
 	/**
-	 * @brief curImageInfo Iterator auf den aktuellen Eintrag von 'imageInfoVec'
+	 * @brief curImageInfo Iterator auf den aktuellen Eintrag von 'imageInfoMap'
 	 */
 	QMap<QString, ImageInfo*>::iterator curImageInfo; //<-TODO muss immer richtig gesetzt werden
 
