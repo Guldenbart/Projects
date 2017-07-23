@@ -23,6 +23,7 @@ public:
 	// 'personSquares'-Methoden
 	// TODO: in cpp anpassen: Index, an dem der PersonSquare liegt, zurückgeben.
 	int addPersonSquare(PersonSquare *personSquare);
+	void removePersonSquare(int index);
 
 private:
 

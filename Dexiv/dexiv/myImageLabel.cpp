@@ -104,12 +104,6 @@ void MyImageLabel::setZoomFactor(double factor)
  */
 void MyImageLabel::addSquare(PersonSquare* personSquare)
 {
-	personSquare->installEventFilter(this);
-	this->squareVec.push_back(personSquare);
-	personSquare->setIndex(this->squareVec.size());
-
-	this->update();
-
 	addSquare(personSquare, this->curImageInfo.value()->getFileName());
 }
 
@@ -125,12 +119,21 @@ void MyImageLabel::addSquare(PersonSquare *personSquare, QString filename)
 	personSquare->installEventFilter(this);
 	ImageInfo* imageInfo = this->imageInfoMap.find(filename).value();
 	int index = imageInfo->addPersonSquare(personSquare);
+	personSquare->setIndex(index);
+
+	// am Schluss; damit der neue Square auch angezeigt wird
+	this->update();
 
 }
 
 
+/**
+ * @brief MyImageLabel::removeSquare Löscht ein PersonSquare des aktuellen Bildes.
+ * @param index Index eines ImageInfos, unter dem der zu Löschende PersonSquare liegt.
+ */
 void MyImageLabel::removeSquare(int index)
 {
+	this->curImageInfo.value() // wie löscht man am Besten ein PersonSquare?
 	this->squareVec.remove(index);
 	this->update();
 }
@@ -205,6 +208,8 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 
 /**
  * @brief MyImageLabel::setCurrentImageInfo Setzt curImageInfo auf den entsprechenden Eintrag im imageInfoMap.
+ * Diese Methode sollte immter aufgerufen werden, wenn das Bild gewechselt wird. Damit weiß man beim Einfügen
+ * und Auslesen von Meta-Daten immer schon, bei welchem Bild man gerade ist.
  * @param filename Dateiname, nach dem gesucht wird.
  */
 void MyImageLabel::setCurrentImageInfo(QString filename)
@@ -214,7 +219,7 @@ void MyImageLabel::setCurrentImageInfo(QString filename)
 
 		// ImageInfo für Bild existiert noch nicht
 		ImageInfo* imageInfo = new ImageInfo(filename);
-		// TODO überprüfen, ob nach 'insert' der iterator richtig gesetzt wird.
+		// TODO überprüfen, ob nach 'insert' der iterator richtig gesetzt wird. (oder auf den Eintrag davor/danach)
 		this->curImageInfo = this->imageInfoMap.insert(filename, imageInfo);
 	}
 }
