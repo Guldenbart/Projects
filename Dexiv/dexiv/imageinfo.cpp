@@ -21,7 +21,7 @@ QString ImageInfo::getFileName() const
 }
 
 
-bool ImageInfo::getChanged() const
+bool ImageInfo::hasChanged() const
 {
 	return this->changed;
 }
@@ -33,9 +33,9 @@ bool ImageInfo::getLoaded() const
 }
 
 
-QVector<PersonSquare*>* ImageInfo::getPersonSquares()
+QVector<PersonSquare*> ImageInfo::getPersonSquares()
 {
-	return &(this->personSquares);
+	return this->personSquares;
 }
 
 

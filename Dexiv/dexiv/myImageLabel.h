@@ -7,6 +7,7 @@
 #include "personSquare.h"
 
 class PersonSquare;
+class ImageInfo;
 
 class MyImageLabel : public QLabel
 {
@@ -18,7 +19,7 @@ public:
 
 	//getter
 	QImage getMyImage();
-	double getZoomFactor();
+	double getZoomFactor() const;
 
 	//setter
 	void setMyImage(QImage i);

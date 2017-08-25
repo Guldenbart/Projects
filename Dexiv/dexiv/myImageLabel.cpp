@@ -6,6 +6,7 @@ MyImageLabel::MyImageLabel(QLabel* parent)
 		: QLabel(parent), zoomFactor(1.0)
 {
 	setAttribute(Qt::WA_StaticContents);
+	//this->curImageInfo = this->imageInfoMap.end();
 }
 
 
@@ -67,7 +68,7 @@ QImage MyImageLabel::getMyImage()
 }
 
 
-double MyImageLabel::getZoomFactor()
+double MyImageLabel::getZoomFactor() const
 {
 	return this->zoomFactor;
 }
@@ -133,9 +134,7 @@ void MyImageLabel::addSquare(PersonSquare *personSquare, QString filename)
  */
 void MyImageLabel::removeSquare(int index)
 {
-	this->curImageInfo.value() // wie löscht man am Besten ein PersonSquare?
-	this->squareVec.remove(index);
-	this->update();
+
 }
 
 /**
@@ -196,7 +195,7 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 		QString metaDataString = payloadString.section('$', i, i);
 		int xCoord = metaDataString.section('%', 0, 0).toInt();
 		int yCoord = metaDataString.section('%', 1, 1).toInt();
-		QString text = metaDataString.section('%', 2, 2).toInt();
+		QString text = metaDataString.section('%', 2, 2);
 
 		PersonSquare* personSquare = new PersonSquare(0, this, xCoord, yCoord, text);
 		//personSquare->installEventFilter(this);
@@ -215,7 +214,7 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 void MyImageLabel::setCurrentImageInfo(QString filename)
 {
 	// TODO überprüfen, ob das geht mit Zuweisung und Vergleich gleichzeitig.
-	if (this->curImageInfo = this->imageInfoMap.find(filename) == this->imageInfoMap.end()) {
+	if ((this->curImageInfo = this->imageInfoMap.find(filename)) == this->imageInfoMap.end()) {
 
 		// ImageInfo für Bild existiert noch nicht
 		ImageInfo* imageInfo = new ImageInfo(filename);
@@ -228,6 +227,13 @@ void MyImageLabel::setCurrentImageInfo(QString filename)
 void MyImageLabel::paintEvent(QPaintEvent* event)
 {
 	//qDebug() << "paintEvent() called";
+
+	if (this->imageInfoMap.empty()) {
+		return;
+	}
+	if (this->curImageInfo == this->imageInfoMap.end()) {
+		return;
+	}
 
 	double fontCorrection = 1.0;
 	if(this->zoomFactor > 1.0)
@@ -250,9 +256,8 @@ void MyImageLabel::paintEvent(QPaintEvent* event)
 	//painter.setPen(QPen(Qt::black, 2, Qt::SolidLine));
 	painter.setFont(QFont("Times", static_cast<int>(20.0 * (this->zoomFactor * fontCorrection)), 2));
 
-	QVector<PersonSquare*>* personSquares = this->curImageInfo.value()->getPersonSquares();
-	for(int i = 0; i < personSquares->size(); i++)
-	{
+	QVector<PersonSquare*> personSquares = this->curImageInfo.value()->getPersonSquares();
+	for (int i = 0; i < personSquares.size(); i++) {
 		int _x = static_cast<int>(static_cast<double>((personSquares[i]->getX())-30)*this->zoomFactor);
 		int _y = static_cast<int>(static_cast<double>((personSquares[i]->getY())-30)*this->zoomFactor);
 		int _w = static_cast<int>(60.0 * this->zoomFactor);

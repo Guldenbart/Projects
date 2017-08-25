@@ -13,11 +13,13 @@ public:
 
 	// getter:
 	QString getFileName() const;
+	bool hasChanged() const;
 	bool getLoaded() const;
-	QVector<PersonSquare*>* getPersonSquares();
+	QVector<PersonSquare*> getPersonSquares();
 
 	// setter:
 	void setFileName(const QString fileName);
+	void setChanged(const bool changed);
 	void setLoaded(const bool loaded);
 
 	// 'personSquares'-Methoden

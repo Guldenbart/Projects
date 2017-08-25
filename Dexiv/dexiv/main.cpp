@@ -1,4 +1,5 @@
-#include <QApplication>
+//#include <QApplication>
+#include <qapplication.h>
 #include <iostream>
 #include "protowindow.h"
 

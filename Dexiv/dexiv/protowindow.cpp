@@ -191,6 +191,7 @@ double ProtoWindow::fittingSize(QString from)
 	qDebug() << "########################################";
 	qDebug() << "from " << from;
 
+	const QPixmap* pixmap = this->imageLabel->pixmap();
 	if (this->imageLabel->pixmap()->isNull() || this->currentIndex == -1) {
 		qDebug() << "RESULT: 1.0 (no Image)";
 		return 1.0;
@@ -267,7 +268,8 @@ bool ProtoWindow::showNextImage(QString fileName)
 	}
 
 	// TODO beides setzen??
-	this->imageLabel->setPixmap(QPixmap::fromImage(image));
+	QPixmap pixmap = QPixmap::fromImage(image);
+	this->imageLabel->setPixmap(pixmap);
 	this->imageLabel->setMyImage(image);
 
 	if (this->isAutoNormalSize) {
