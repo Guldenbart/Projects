@@ -18,11 +18,11 @@ public:
 	QSize sizeHint() const;
 
 	//getter
-	QImage getMyImage();
+	//QImage getMyImage();
 	double getZoomFactor() const;
 
 	//setter
-	void setMyImage(QImage i);
+	//void setMyImage(QImage i);
 	void setZoomFactor(double factor);
 
 	// PersonSquare-Methoden
@@ -52,7 +52,7 @@ private:
 
 
 	//Daten
-	QImage myImage;
+	//QImage myImage;
 	double zoomFactor;
 
 	/**

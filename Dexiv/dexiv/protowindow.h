@@ -2,17 +2,16 @@
 #define PROTOWINDOW_H
 
 // TODO: werden die Informationen zum Bild gesichert???
-// TODO: in der Titelleiste des Fensters den Namen der angeziegten Datei anzeigen
 // TODO: schauen, was alles 'const' werden kann
 // KOMMENTIEREN!!!!!
 // TODO: prüfen, ob setCurrent nicht auch ohne Parameter geht, da filename ja als Attribut abgespeichert wird
-// TODO: Suchfunktion in (untergeordneten) Ordner(n) nach Personen?
 // TODO: Kann man auch mit STRG+Mausrad auch zoomen?
 // TODO: Optimierung: doch 'QImage* currentImage' verwenden
 // TODO: QString bei 'fittingSize()' wegmachen
 // TODO: unnötige Zwischenräume bei der GUI wegmachen
 // TODO: Abhängigkeiten von std-Bibliothek entfernen
 // TODO: beim Eingeben eines Textes für ein PersonSquare müssen die Sonderzeichen '$' und '§' abgelehnt werden.
+// TODO: Suchfunktion in (untergeordneten) Ordner(n) nach Personen?
 
 #include <QMainWindow>
 #include <QtGui>
@@ -58,15 +57,15 @@ private:
 
 	QDir curDir; // Verzeichnis des aktuellen Bilds; wird vor allem gebraucht um zu überprüfen, ob bei open() der Ordner gewechselt wird
 	QVector<QString> dirVec; // Vektor mit allen Bild-Dateien-Pfade des aktuellen Ordners
-	int currentIndex; // myDir-Index des momentan geöffneten Bildes
+	int currentIndex; // dirVec-Index des momentan geöffneten Bildes
 	double scaleFactor;
-	QVector<ImageInfo> imgInfoVec;
-	bool imageChanged;
+	bool isInverted;
+	int rotateChanged; // hier werden die rotates aufsummiert, damit man weiß, ob sich nach Rotieren ein Bild wirklich geändert hat.
 	bool metaDataChanged;
 	bool isAutoNormalSize;
 
 	//Funktionen
-	void onNewFolder();
+	void onNewFolder(QDir newDir);
 	void onNewImage();
 	void setCurrentIndex(QString filename);
 	void createActions();
@@ -76,6 +75,8 @@ private:
 	void scaleImage(double factor);
 	void adjustScrollBar(QScrollBar *scrollBar, double factor);
 	double fittingSize(QString from);
+	bool imageChanged();
+	void resetImageChanged();
 	bool showNextImage(QString filename);
 	void parseLine(QString content);
 	//bool findFile(QString content, int& fileNumber);

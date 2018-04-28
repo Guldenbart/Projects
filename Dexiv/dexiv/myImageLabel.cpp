@@ -12,11 +12,6 @@ MyImageLabel::MyImageLabel(QLabel* parent)
 
 MyImageLabel::~MyImageLabel()
 {
-	/*
-	for (auto e : this->imageInfoMap.keys()) {
-		delete this->imageInfoMap.begin();
-	}
-	*/
 	for (auto it = this->imageInfoMap.begin(); it != this->imageInfoMap.end(); /* don't increment here */) {
 		it = this->imageInfoMap.erase(it);
 		// TODO hier schauen, ob Destruktor aufgerufen wird!
@@ -61,12 +56,12 @@ QSize MyImageLabel::sizeHint() const
 /* ************************************************************************************************
  * GETTER
  * ************************************************************************************************
- */
+ */ /*
 QImage MyImageLabel::getMyImage()
 {
 	return this->myImage;
 }
-
+*/
 
 double MyImageLabel::getZoomFactor() const
 {
@@ -77,14 +72,17 @@ double MyImageLabel::getZoomFactor() const
 /* ************************************************************************************************
  * SETTER
  * ************************************************************************************************
- */
+ */ /*
 void MyImageLabel::setMyImage(QImage _image)
 {
 	this->myImage = _image;
-	//resizeImage(&this->myImage, this->myImage.size().expandedTo(size()));
+
+	QPixmap pixmap = QPixmap::fromImage(this->myImage);
+	this->setPixmap(pixmap);
+
 	update();
 }
-
+*/
 
 void MyImageLabel::setZoomFactor(double factor)
 {
@@ -134,7 +132,7 @@ void MyImageLabel::addSquare(PersonSquare *personSquare, QString filename)
  */
 void MyImageLabel::removeSquare(int index)
 {
-
+	// TODO
 }
 
 /**
@@ -187,11 +185,15 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 
 	ImageInfo* imageInfo = it.value();
 
-	// (Zeile ab dem ersten '$')
-	QString payloadString = line.section('$', 1, -1);
-	int dollarCount = payloadString.count('$');
+	// Zeile zwischen dem ersten und zweiten '$': Bildbeschreibung
+	QString description = line.section('$', 1, 1);
 
-	for (int i=0; i<dollarCount+1; i++) {
+	// Zeile ab dem zweiten '$': PersonSquares
+	QString payloadString = line.section('$', 2, -1);
+	int dollarCount = payloadString.count('$');
+	imageInfo->setDescription(description);
+
+	for (int i = 0; i < dollarCount+1; i++) {
 		QString metaDataString = payloadString.section('$', i, i);
 		int xCoord = metaDataString.section('%', 0, 0).toInt();
 		int yCoord = metaDataString.section('%', 1, 1).toInt();
@@ -202,6 +204,19 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 
 		imageInfo->addPersonSquare(personSquare);
 	}
+}
+
+
+QString MyImageLabel::getMetaDataString()
+{
+	QString metaData = "&";
+	for (auto it = this->imageInfoMap.constBegin(); it != this->imageInfoMap.constEnd(); it++) {
+		metaData += it.value()->getFileName();
+		metaData += "$";
+		metaData += it.value()->getDescprition();
+		//metaData += it.value()
+	}
+	metaData += "&";
 }
 
 

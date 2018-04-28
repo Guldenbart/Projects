@@ -27,7 +27,13 @@ bool ImageInfo::hasChanged() const
 }
 
 
-bool ImageInfo::getLoaded() const
+QString ImageInfo::getDescprition() const
+{
+	return this->description;
+}
+
+
+bool ImageInfo::isLoaded() const
 {
 	return this->loaded;
 }
@@ -47,6 +53,12 @@ QVector<PersonSquare*> ImageInfo::getPersonSquares()
 void ImageInfo::setFileName(const QString fileName)
 {
 	this->fileName = fileName;
+}
+
+
+void ImageInfo::setDescription(const QString description)
+{
+	this->description = description;
 }
 
 
@@ -70,4 +82,17 @@ int ImageInfo::addPersonSquare(PersonSquare* personSquare)
 {
 	this->personSquares.push_back(personSquare);
 	return this->personSquares.size() - 1;
+}
+
+
+QString ImageInfo::getPersonSquaresString() const
+{
+	QString personSquaresString = "";
+	for (int i = 0; i < this->personSquares.size(); i++) {
+		personSquaresString += this->personSquares[i]->getX();
+		personSquaresString += "%";
+		personSquaresString += this->personSquares[i]->getY();
+		personSquaresString += "%";
+		personSquaresString += this->personSquares[i]->getName();
+	}
 }

@@ -40,18 +40,23 @@ bool PersonSquare::getHover()
  * ************************************************************************************************
  */
 
-/*
+
 void PersonSquare::setX(int x)
 {
 	this->x = x;
 }
-*/
-/*
+
+
 void PersonSquare::setY(int y)
 {
 	this->y = y;
 }
-*/
+
+
+void PersonSquare::setName(const QString text)
+{
+	this->name = text;
+}
 
 
 void PersonSquare::setIndex(int i)
@@ -65,7 +70,3 @@ void PersonSquare::setHover(bool h)
 	this->hover = h;
 }
 
-QString PersonSquare::packData()
-{
-	return "";
-}

@@ -13,12 +13,14 @@ public:
 
 	// getter:
 	QString getFileName() const;
+	QString getDescprition() const;
 	bool hasChanged() const;
-	bool getLoaded() const;
+	bool isLoaded() const;
 	QVector<PersonSquare*> getPersonSquares();
 
 	// setter:
 	void setFileName(const QString fileName);
+	void setDescription(const QString description);
 	void setChanged(const bool changed);
 	void setLoaded(const bool loaded);
 
@@ -26,6 +28,7 @@ public:
 	// TODO: in cpp anpassen: Index, an dem der PersonSquare liegt, zurückgeben.
 	int addPersonSquare(PersonSquare *personSquare);
 	void removePersonSquare(int index);
+	QString getPersonSquaresString() const;
 
 private:
 
@@ -34,6 +37,12 @@ private:
 	 * @brief fileName voller Dateipfad (?) (oder nur Dateiname?)
 	 */
 	QString fileName;
+
+	/**
+	 * @brief description Allgemeine Beschreibung des Bilds, die im Textfeld unter dem Bild
+	 * angezeigt wird.
+	 */
+	QString description;
 
 	/**
 	 * @brief personSquares Liste aller PersonSquares.

@@ -30,7 +30,8 @@ ProtoWindow::ProtoWindow(QWidget *parent)
 	this->currentIndex = -1;
 	this->scaleFactor = 1.0;
 	this->curDir = QDir::current();
-	this->imageChanged = false;
+	this->isInverted = false;
+	this->rotateChanged = 0;
 	this->metaDataChanged = false;
 	this->isAutoNormalSize = true;
 
@@ -39,7 +40,7 @@ ProtoWindow::ProtoWindow(QWidget *parent)
 	createActions();
 	createMenus();
 
-	setWindowTitle(tr("EXIV Viewer"));
+	setWindowTitle(trUtf8("EXIV Viewer"));
 }
 
 /*
@@ -64,7 +65,7 @@ void ProtoWindow::setArgs(int _argc, char** _argv)
  */
 void ProtoWindow::setDirVec()
 {
-	// Filter erstellen, der nur jp(e)g- png- und bmp-Dateien berücksichtigt.
+	// Filter erstellen, der nur jp(e)g-, png- und bmp-Dateien berücksichtigt.
 	QStringList filters;
 	filters << "*.jpg" << "*.jpeg" << "*.JPG" << "*.JPEG" << "*.png" << "*.PNG" << ".bmp" << ".BMP";
 
@@ -100,10 +101,17 @@ void ProtoWindow::setFirstImage()
 	}
 }
 
-void ProtoWindow::onNewFolder()
+void ProtoWindow::onNewFolder(QDir newDir)
 {
-	onNewImage();
+	/* Altes löschen: */
+	this->dirVec.clear();
+	// TODO auch in imageLabel
 
+	/* Neu aufbauen: */
+	this->curDir = newDir;
+	setDirVec();
+
+	/* Meta-Daten lesen */
 	QFile inputFile(this->curDir.absoluteFilePath("dexiv.txt"));
 	if (inputFile.open(QIODevice::ReadOnly)) {
 		QTextStream in(&inputFile);
@@ -123,7 +131,7 @@ void ProtoWindow::onNewImage()
 	this->imageLabel->clearImageInfoVec();
 
 	this->scaleFactor = 1.0;
-	this->imageChanged = false;
+	this->resetImageChanged();
 	this->metaDataChanged = false;
 }
 
@@ -134,17 +142,14 @@ void ProtoWindow::onNewImage()
 void ProtoWindow::setCurrentIndex(QString filename)
 {
 	// '\' durch '/' ersetzen:
-	for(int i = 0; i < filename.size(); i++)
-	{
+	for (int i = 0; i < filename.size(); i++) {
 		if(filename[i] == '\\')
 			filename[i] = '/';
 	}
 
 	// Durch den Vektor mit allen Dateinamen gehen und mit 'filename' abgleichen.
-	for(int i = 0; i < this->dirVec.size(); i++)
-	{
-		if(curDir.filePath(this->dirVec[i]) == filename)
-		{
+	for (int i = 0; i < this->dirVec.size(); i++) {
+		if (curDir.filePath(this->dirVec[i]) == filename) {
 			this->currentIndex = i;
 			return;
 		}
@@ -191,8 +196,13 @@ double ProtoWindow::fittingSize(QString from)
 	qDebug() << "########################################";
 	qDebug() << "from " << from;
 
+	if (!this->isAutoNormalSize) {
+		// keine Anpassung gewünscht
+		return 1.0;
+	}
+
 	const QPixmap* pixmap = this->imageLabel->pixmap();
-	if (this->imageLabel->pixmap()->isNull() || this->currentIndex == -1) {
+	if (pixmap == 0 || this->currentIndex == -1) {
 		qDebug() << "RESULT: 1.0 (no Image)";
 		return 1.0;
 	}
@@ -211,12 +221,9 @@ double ProtoWindow::fittingSize(QString from)
 	qDebug() << "area w: " << areaSize_w;
 
 	if (labelSize_h < areaSize_h && labelSize_w < areaSize_w) {
-		double imageSize_h = this->imageLabel->pixmap()->height();
-		double imageSize_w = this->imageLabel->pixmap()->width();
-		if (!this->isAutoNormalSize) {
-			// keine Anpassung gewünscht
-			return 1.0;
-		}
+		double imageSize_h = pixmap->height();
+		double imageSize_w = pixmap->width();
+
 		if (imageSize_h <= areaSize_h && imageSize_w <= areaSize_w) {
 			return 1/this->scaleFactor;
 		} else if (imageSize_h > areaSize_h && imageSize_w <= areaSize_w) {
@@ -247,10 +254,26 @@ double ProtoWindow::fittingSize(QString from)
 	}
 }
 
-/*
+
+bool ProtoWindow::imageChanged()
+{
+	return this->isInverted || this->rotateChanged % 360 != 0;
+}
+
+
+void ProtoWindow::resetImageChanged()
+{
+	this->isInverted = false;
+	this->rotateChanged = 0;
+}
+
+
+/**
  * Gemeinsame Funktion von open, on_backPushButton_clicked und on_forwardPushButton_clicked.
  *
  * sorgt dafür, dass Bild 'fileName' angezeigt wird.
+ *
+ * @return true, wenn das Bild geladen werden konnte, ansonsten false.
  */
 bool ProtoWindow::showNextImage(QString fileName)
 {
@@ -263,18 +286,14 @@ bool ProtoWindow::showNextImage(QString fileName)
 
 	QImage image(fileName);
 	if (image.isNull()) {
-		 QMessageBox::information(this, tr("EXIV Viewer"), tr("%1 konnte nicht geladen werden.").arg(fileName));
+		 QMessageBox::information(this, trUtf8("EXIV Viewer"), trUtf8("%1 konnte nicht geladen werden.").arg(fileName));
 		 return false;
 	}
 
-	// TODO beides setzen??
-	QPixmap pixmap = QPixmap::fromImage(image);
-	this->imageLabel->setPixmap(pixmap);
-	this->imageLabel->setMyImage(image);
+	//this->imageLabel->setMyImage(image);
+	this->imageLabel->setPixmap(QPixmap::fromImage(image));
 
-	if (this->isAutoNormalSize) {
-		scaleImage(fittingSize("showNextImage"));
-	}
+	scaleImage(fittingSize("showNextImage"));
 
 	this->imageLabel->setCurrentImageInfo(fileName);
 
@@ -316,7 +335,7 @@ void ProtoWindow::cleanUp()
  */
 void ProtoWindow::createMenus()
 {
-	fileMenu = new QMenu(tr("&Datei"), this);
+	fileMenu = new QMenu(trUtf8("&Datei"), this);
 	fileMenu->addAction(openAct);
 	fileMenu->addAction(saveAct);
 	fileMenu->addAction(saveAsAct);
@@ -324,7 +343,7 @@ void ProtoWindow::createMenus()
 	fileMenu->addSeparator();
 	fileMenu->addAction(exitAct);
 
-	viewMenu = new QMenu(tr("&Ansicht"), this);
+	viewMenu = new QMenu(trUtf8("&Ansicht"), this);
 	viewMenu->addAction(zoomInAct);
 	viewMenu->addAction(zoomOutAct);
 	viewMenu->addAction(normalSizeAct);
@@ -335,7 +354,7 @@ void ProtoWindow::createMenus()
 	viewMenu->addAction(rotateLeftAct);
 	viewMenu->addAction(rotateRightAct);
 
-	helpMenu = new QMenu(tr("&Hilfe"), this);
+	helpMenu = new QMenu(trUtf8("&Hilfe"), this);
 	helpMenu->addAction(aboutAct);
 	helpMenu->addAction(aboutQtAct);
 
@@ -349,79 +368,80 @@ void ProtoWindow::createMenus()
  */
 void ProtoWindow::createActions()
 {
-	openAct = new QAction(tr("Ö&ffnen..."), this);
-	openAct->setShortcut(tr("Ctrl+O"));
+	openAct = new QAction(trUtf8("Ö&ffnen..."), this);
+	openAct->setShortcut(trUtf8("Ctrl+O"));
 	connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
 
-	saveAct = new QAction(tr("&Speichern"), this);
-	saveAct->setShortcut(tr("Ctrl+S"));
+	// TODO bei Speichern über STRG-S vermutlich nicht mehr nachfragen
+	saveAct = new QAction(trUtf8("&Speichern"), this);
+	saveAct->setShortcut(trUtf8("Ctrl+S"));
 	saveAct->setEnabled(false);
 	connect(saveAct, SIGNAL(triggered()), this, SLOT(save()));
 
-	saveAsAct = new QAction(tr("Speichern unter..."), this);
+	saveAsAct = new QAction(trUtf8("Speichern unter..."), this);
 	saveAsAct->setEnabled(false);
 	connect(saveAsAct, SIGNAL(triggered()), this, SLOT(saveAs()));
 
-	//printAct = new QAction(tr("&Drucken..."), this);
-	//printAct->setShortcut(tr("Ctrl+P"));
+	//printAct = new QAction(trUtf8("&Drucken..."), this);
+	//printAct->setShortcut(trUtf8("Ctrl+P"));
 	//printAct->setEnabled(false);
 	//connect(printAct, SIGNAL(triggered()), this, SLOT(print()));
 
-	exitAct = new QAction(tr("&Beenden"), this);
-	exitAct->setShortcut(tr("Ctrl+Q"));
+	exitAct = new QAction(trUtf8("&Beenden"), this);
+	exitAct->setShortcut(trUtf8("Ctrl+Q"));
 	connect(exitAct, SIGNAL(triggered()), this, SLOT(close()));
 
-	zoomInAct = new QAction(tr("ver&größern (25%)"), this);
-	zoomInAct->setShortcut(tr("Ctrl++"));
+	zoomInAct = new QAction(trUtf8("ver&größern (25%)"), this);
+	zoomInAct->setShortcut(trUtf8("Ctrl++"));
 	zoomInAct->setEnabled(false);
 	connect(zoomInAct, SIGNAL(triggered()), this, SLOT(zoomIn()));
 
-	zoomOutAct = new QAction(tr("ver&kleinern (25%)"), this);
-	zoomOutAct->setShortcut(tr("Ctrl+-"));
+	zoomOutAct = new QAction(trUtf8("ver&kleinern (25%)"), this);
+	zoomOutAct->setShortcut(trUtf8("Ctrl+-"));
 	zoomOutAct->setEnabled(false);
 	connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
 
-	normalSizeAct = new QAction(tr("&Normale Größe"), this);
-	normalSizeAct->setShortcut(tr("Ctrl+N"));
+	normalSizeAct = new QAction(trUtf8("&Normale Größe"), this);
+	normalSizeAct->setShortcut(trUtf8("Ctrl+N"));
 	normalSizeAct->setEnabled(false);
 	connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
 
-	autoNormalSizeAct = new QAction(tr("immer auf normale Größe einpassen"), this);
+	autoNormalSizeAct = new QAction(trUtf8("immer auf normale Größe einpassen"), this);
 	autoNormalSizeAct->setCheckable(true);
 	autoNormalSizeAct->setChecked(true);
 	connect(autoNormalSizeAct, SIGNAL(triggered()), this, SLOT(autoNormalSize()));
 
-	actualSizeAct = new QAction(tr("&Tatsächliche Größe"), this);
-	actualSizeAct->setShortcut(tr("Ctrl+T"));
+	actualSizeAct = new QAction(trUtf8("&Tatsächliche Größe"), this);
+	actualSizeAct->setShortcut(trUtf8("Ctrl+T"));
 	actualSizeAct->setEnabled(false);
 	connect(actualSizeAct, SIGNAL(triggered()), this, SLOT(actualSize()));
 
-	invertImageAct = new QAction(tr("Farben &invertieren"), this);
+	invertImageAct = new QAction(trUtf8("Farben &invertieren"), this);
 	invertImageAct->setEnabled(false);
-	invertImageAct->setShortcut(tr("I"));
+	invertImageAct->setShortcut(trUtf8("I"));
 	connect(invertImageAct, SIGNAL(triggered()), this, SLOT(invertImage()));
 
-	rotateLeftAct = new QAction(tr("90°-Drehung links"), this);
+	rotateLeftAct = new QAction(trUtf8("90°-Drehung links"), this);
 	rotateLeftAct->setEnabled(false);
-	rotateLeftAct->setShortcut(tr("Ctrl+Left"));
+	rotateLeftAct->setShortcut(trUtf8("Ctrl+Left"));
 	connect(rotateLeftAct, SIGNAL(triggered()), this, SLOT(rotateLeft()));
 
-	rotateRightAct = new QAction(tr("90°-Drehung rechts"), this);
+	rotateRightAct = new QAction(trUtf8("90°-Drehung rechts"), this);
 	rotateRightAct->setEnabled(false);
-	rotateRightAct->setShortcut(tr("Ctrl+Right"));
+	rotateRightAct->setShortcut(trUtf8("Ctrl+Right"));
 	connect(rotateRightAct, SIGNAL(triggered()), this, SLOT(rotateRight()));
 
-	aboutAct = new QAction(tr("&Über..."), this);
+	aboutAct = new QAction(trUtf8("&Über..."), this);
 	connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
 
-	aboutQtAct = new QAction(tr("Über &Qt"), this);
+	aboutQtAct = new QAction(trUtf8("Über &Qt"), this);
 	connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
 }
 
 void ProtoWindow::updateUI()
 {
 	bool imgNotNull = !this->imageLabel->pixmap()->isNull();
-	saveAct->setEnabled(imgNotNull && this->metaDataChanged);
+	saveAct->setEnabled(imgNotNull && (this->metaDataChanged || this->imageChanged()));
 	saveAsAct->setEnabled(imgNotNull);
 
 	zoomInAct->setEnabled(imgNotNull && this->scaleFactor<4.0);
@@ -440,7 +460,7 @@ void ProtoWindow::updateUI()
 	ui->rotateLeftPushButton->setEnabled(imgNotNull);
 	ui->rotateRightPushButton->setEnabled(imgNotNull);
 
-	QString windowTitle(tr("EXIV Viewer"));
+	QString windowTitle(trUtf8("EXIV Viewer"));
 	if (imgNotNull) {
 		QFileInfo info(this->dirVec.at(this->currentIndex));
 		windowTitle.append(" - ");
@@ -455,8 +475,8 @@ void ProtoWindow::updateUI()
 void ProtoWindow::open()
 {
 	// Öffnen-Dialog; Dateiname der zu öffnenden Datei wird in fileName gespeichert.
-	const QString caption = tr("Datei öffnen");
-	const QString filter = tr("Bilder (*.jpeg *.jpg *.JPG *.JPEG *.png)");
+	const QString caption = trUtf8("Datei öffnen");
+	const QString filter = trUtf8("Bilder (*.jpeg *.jpg *.JPG *.JPEG *.png)");
 	QString fileName = QFileDialog::getOpenFileName(&(*(ui->centralWidget)), caption, QDir::homePath(), filter);
 
 	if (fileName.isEmpty()) {
@@ -467,18 +487,19 @@ void ProtoWindow::open()
 	//wird gebraucht, um Pfad extrahieren zu können
 	QFileInfo info(fileName);
 
+	/*
+	 * Die geöffnete Datei liegt in einem neuen Ordner, daher muss alles
+	 * in Verbindung mit der Ordnerstruktur neu aufgebaut werden.
+	 */
+	if (info.absoluteDir() != this->curDir || this->dirVec.empty()) {
+		onNewFolder(info.absoluteDir());
+	}
+
 	if (showNextImage(fileName)) {
 
-		//Überprüfen, ob die Liste der Dateien neu erstellt werden muss
-		if(info.absoluteDir() != this->curDir || this->dirVec.empty())
-		{
-			this->curDir = info.absoluteDir();
-			setDirVec();
-			onNewFolder();
-		}
 		setCurrentIndex(info.absoluteFilePath());
 
-		scaleImage(fittingSize("on_backPushButton_clicked"));
+		//scaleImage(fittingSize("on_backPushButton_clicked"));
 		updateUI();
 	}
 }
@@ -486,15 +507,28 @@ void ProtoWindow::open()
 
 void ProtoWindow::save()
 {
-	saveImage(this->dirVec.at(this->currentIndex));
-	saveImageMetaData();
+	if (!this->imageChanged() && !this->metaDataChanged) {
+		return;
+	}
+
+	QMessageBox speichernAbfrage(QMessageBox::Question, trUtf8(" Änderungen am Bild "), trUtf8("Speichern? "), QMessageBox::Yes|QMessageBox::No, this);
+
+	speichernAbfrage.setButtonText(QMessageBox::Yes, trUtf8("Ja"));
+	speichernAbfrage.setButtonText(QMessageBox::No, trUtf8("Nein"));
+	speichernAbfrage.setDefaultButton(QMessageBox::No);
+
+	if (speichernAbfrage.exec() == QMessageBox::Yes) {
+		saveImage(this->curDir.absoluteFilePath(this->dirVec.at(this->currentIndex)));
+		saveImageMetaData();
+	}
+
 }
 
 
 void ProtoWindow::saveAs()
 {
-	const QString caption = tr("Datei speichern");
-	const QString filter = tr("Bilder (*.jpeg *.jpg *.JPG *.JPEG *png)");
+	const QString caption = trUtf8("Datei speichern");
+	const QString filter = trUtf8("Bilder (*.jpeg *.jpg *.JPG *.JPEG *png)");
 	QString fileName = QFileDialog::getSaveFileName(&(*(ui->centralWidget)), caption, this->curDir.absolutePath(), filter);
 
 	if (fileName.isEmpty()) {
@@ -502,22 +536,26 @@ void ProtoWindow::saveAs()
 		return;
 	}
 
-	saveImage(fileName);
+	saveImage(fileName); // TODO gibt das Speichern unter einem anderen Dateinamen ein Problem bei den Metadaten?
 }
 
 
 void ProtoWindow::saveImage(QString fileName)
 {
-	if (!this->imageChanged) {
+	if (!this->imageChanged()) {
 		return;
 	}
 
-	if (!this->imageLabel->pixmap()->toImage().save(fileName)) {
+	bool saved = this->imageLabel->pixmap()->toImage().save(fileName);
+	if (!saved) {
 		QMessageBox msgBox;
 		msgBox.setText("Das Bild" + fileName + "konnte nicht gespeichert werden!");
 		msgBox.setIcon(QMessageBox::Warning);
 		msgBox.exec();
+		return;
 	}
+
+	this->resetImageChanged();
 }
 
 
@@ -525,6 +563,8 @@ void ProtoWindow::saveImageMetaData()
 {
 	// Meta-Daten zu String serialisieren
 	// in Datei schreiben
+
+	//this->metaDataChanged = false;
 }
 
 void ProtoWindow::close()
@@ -598,8 +638,8 @@ void ProtoWindow::invertImage()
 
 	QImage i = this->imageLabel->pixmap()->toImage();
 	i.invertPixels();
-	this->metaDataChanged = true;
-	this->imageLabel->setPixmap(QPixmap::fromImage(i));
+	this->isInverted = !this->isInverted;
+	this->imageLabel->setPixmap(QPixmap::fromImage(i)); // TODO auf setMyImage ändern
 
 	updateUI();
 }
@@ -631,7 +671,8 @@ void ProtoWindow::rotate(int angle)
 		scaleImage(fittingSize("rotate"));
 	}
 
-	this->imageChanged = true;
+	this->rotateChanged = (this->rotateChanged + angle) % 360;
+
 	this->imageLabel->update();
 
 	updateUI();
@@ -639,8 +680,8 @@ void ProtoWindow::rotate(int angle)
 
 void ProtoWindow::about()
 {
-	QMessageBox::about(this, tr("About Image Viewer"),
-			tr("<p>The <b>Image Viewer</b> example shows how to combine QLabel "
+	QMessageBox::about(this, trUtf8("About Image Viewer"),
+			trUtf8("<p>The <b>Image Viewer</b> example shows how to combine QLabel "
 				"and QScrollArea to display an image. QLabel is typically used "
 				"for displaying a text, but it can also display an image. "
 				"QScrollArea provides a scrolling view around another widget. "
@@ -659,27 +700,27 @@ void ProtoWindow::about()
  */
 void ProtoWindow::on_backPushButton_clicked()
 {
-	save();
 	// Daten des "alten" Bildes müssen gespeichert werden.
-
+	save();
 		/*
 		 * Textdatei erstellen, falls nicht vorhanden.
 		 *
 		 * Daten in Textdatei schreiben. Dabei werden die alten Daten für dieses Bild überschrieben.
 		 * Die Daten werden in der folgenden Reihenfolge gespeichert:
-		 * "&"Dateiname(mit Endung)"$"x-Koordinate%y-Koordinate%Text"$"nächstes Quadrat..."&"
+		 * "&"Dateiname(mit Endung)$bildbeschreibung"$"x-Koordinate"%"y-Koordinate"%"Text"$"nächstes Quadrat..."&"
 		 *
 		 * Bis auf Weiteres wird der gesamte Inhalt der Datei neu gespeichert.
 		 */
 
 	// current-Counter eins runterzaehlen, damit das naechste Bild angezeigt wird
-	if(this->currentIndex-1 < 0)
+	if (this->currentIndex-1 < 0) {
 		this->currentIndex = this->dirVec.size()-1;
-	else
+	} else {
 		this->currentIndex = (this->currentIndex-1) % (this->dirVec.size());
+	}
 	QString fileName = this->dirVec[currentIndex];
 
-	showNextImage(fileName);
+	showNextImage((this->curDir.absoluteFilePath(fileName)));
 
 	scaleImage(fittingSize("on_backPushButton_clicked"));
 	updateUI();
@@ -690,29 +731,21 @@ void ProtoWindow::on_backPushButton_clicked()
  */
 void ProtoWindow::on_forwardPushButton_clicked()
 {
-	save();
 	// Daten des "alten" Bildes muessen gespeichert werden.
-
+	save();
 		/*
 		 * Textdatei erstellen, falls nicht vorhanden.
-		 *
-		 * Daten in Textdatei schreiben. Dabei werden die alten Daten für dieses Bild überschrieben.
-		 * Die Daten werden in der folgenden Reihenfolge gespeichert:
-		 * "§"Dateiname"$"x-Koordinate,y-Koordinate,Text"$"nächstes Quadrat..."%"
-		 *
-		 * Bis auf Weiteres muss der gesamte Inhalt der Datei als String gespeichert
-		 * werden, der Teil, der zum Bild gehört, "ausgeschnitten", die neuen, aktualisierten
-		 * Informationen angehängt und dann alles wieder ge/überschrieben werden.
+		 * s.o.
 		 */
 
 	// current-Counter eins hochzaehlen, damit das naechste Bild angezeigt wird
 	this->currentIndex = (this->currentIndex+1) % (this->dirVec.size());
 	QString fileName = this->dirVec[currentIndex];
 
-	showNextImage(fileName);
-
-	scaleImage(fittingSize("on_backPushButton_clicked"));
-	updateUI();
+	if (showNextImage(this->curDir.absoluteFilePath(fileName))) {
+		scaleImage(fittingSize("on_backPushButton_clicked"));
+		updateUI();
+	}
 }
 
 void ProtoWindow::on_showPushButton_clicked()
@@ -779,7 +812,6 @@ void ProtoWindow::on_rotateRightPushButton_clicked()
  */
 void ProtoWindow::mouseDoubleClickEvent(QMouseEvent* event)
 {
-	/*
 	QPoint p = event->pos();
 
 	// Berechnen, ob der Doppelklick innerhalb des Bildes gemacht wurde
@@ -792,7 +824,7 @@ void ProtoWindow::mouseDoubleClickEvent(QMouseEvent* event)
 	int _y = static_cast<int>(static_cast<double>(p.y()) * (1.0/scaleFactor))-33 + ui->scrollArea->verticalScrollBar()->sliderPosition();
 
 	bool ok;
-	QString text = QInputDialog::getText(this, tr("Name"), tr("Name eingeben:"), QLineEdit::Normal, "", &ok);
+	QString text = QInputDialog::getText(this, trUtf8("Name"), trUtf8("Name eingeben:"), QLineEdit::Normal, "", &ok);
 	if (ok) {
 		// neues PersonSquare erstellen und in den Vektor aller PersonSquares einfügen
 		PersonSquare* ps = new PersonSquare(0, this->imageLabel, _x, _y, text);
@@ -800,5 +832,4 @@ void ProtoWindow::mouseDoubleClickEvent(QMouseEvent* event)
 		this->imageLabel->addSquare(ps);
 		//this->imageLabel->update();
 	}
-	*/
 }

@@ -22,15 +22,19 @@ class PersonSquare : public QWidget
 
 public:
 	PersonSquare(QWidget* parent = 0, MyImageLabel* l = 0, int xCoord = 0, int yCoord = 0, QString _text = "");
+
+	// getter
 	int getX();
 	int getY();
 	QString getName();
 	bool getHover();
-	//void setX(int _x);
-	//void setY(int _y);
+
+	// setter
+	void setX(int _x);
+	void setY(int _y);
+	void setName(const QString text);
 	void setIndex(int i);
 	void setHover(bool h);
-	QString packData();
 
 private:
 	//Zeiger auf ImageLabel
