@@ -17,8 +17,6 @@
 #include <QtGui>
 #include <QScrollBar>
 #include <QLabel>
-//#include <QtPrintSupport/QPrinter>
-//#include <QtPrintSupport/QPrintDialog>
 #include <QMessageBox>
 #include <QFileDialog>
 
@@ -84,12 +82,10 @@ private:
 	void cleanUp();
 
 	//Aktionen
-	//QPrinter printer;
 
 	QAction *openAct;
 	QAction *saveAct;
 	QAction *saveAsAct;
-	//QAction *printAct;
 	QAction *exitAct;
 	QAction *zoomInAct;
 	QAction *zoomOutAct;
@@ -117,7 +113,6 @@ private slots:
 	void save();
 	void saveAs();
 	void close();
-	//void print();
 	void zoomIn();
 	void zoomOut();
 	void normalSize();

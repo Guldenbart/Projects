@@ -61,7 +61,8 @@ void ProtoWindow::setArgs(int _argc, char** _argv)
 }
 
 /*
- * trägt alle Dateinamen von jpeg-Dateien des aktuellen Ordners in einen Vektor ein.
+ * Trägt alle Dateinamen von jpeg-Dateien des aktuellen Ordners in einen Vektor ein.
+ * Triggert auch die Initialisierung des ImageInfo-Vectors in MyLabel.
  */
 void ProtoWindow::setDirVec()
 {
@@ -76,6 +77,8 @@ void ProtoWindow::setDirVec()
 	for(int in = 0; in < _infoList.length(); in++) {
 		this->dirVec.push_back(_infoList.at(in).fileName());
 	}
+
+	this->imageLabel->initImageInfoMap(&(this->dirVec));
 }
 
 /*
@@ -103,7 +106,7 @@ void ProtoWindow::setFirstImage()
 
 void ProtoWindow::onNewFolder(QDir newDir)
 {
-	/* Altes löschen: */
+	/* _Altes_ löschen: */
 	this->dirVec.clear();
 	// TODO auch in imageLabel
 
@@ -296,6 +299,7 @@ bool ProtoWindow::showNextImage(QString fileName)
 	scaleImage(fittingSize("showNextImage"));
 
 	this->imageLabel->setCurrentImageInfo(fileName);
+	ui->toPutPlainTextEdit->setPlainText(this->imageLabel->getCurrentImageInfoVec()->value()->getDescription());
 
 	return true;
 }
@@ -507,7 +511,7 @@ void ProtoWindow::open()
 
 void ProtoWindow::save()
 {
-	if (!this->imageChanged() && !this->metaDataChanged) {
+	if (!this->imageChanged() && !this->metaDataChanged && !this->imageLabel->hasMetaDataChanged(ui->toPutPlainTextEdit->toPlainText())) {
 		return;
 	}
 
@@ -518,6 +522,7 @@ void ProtoWindow::save()
 	speichernAbfrage.setDefaultButton(QMessageBox::No);
 
 	if (speichernAbfrage.exec() == QMessageBox::Yes) {
+
 		saveImage(this->curDir.absoluteFilePath(this->dirVec.at(this->currentIndex)));
 		saveImageMetaData();
 	}
@@ -527,6 +532,17 @@ void ProtoWindow::save()
 
 void ProtoWindow::saveAs()
 {
+	/*
+	 * Da der "save"-Slot nur void sein darf, muss _hier_ überprüft werden, ob ein Bild gespeichert werden kann.
+	 */
+	if (this->imageLabel->hasInvalidCharacters()) {
+		QMessageBox unzulaessigeZeichen(QMessageBox::Warning, trUtf8("Warnung"), trUtf8("Im Text sind ungültige Zeichen vorhanden. "
+																						"Diese müssen entfernt werden, bevor das Bild gespeichert werden kann.\n"
+																						"Ungültige Zeichen sind: $, %, &"), QMessageBox::Ok, this);
+		unzulaessigeZeichen.exec();
+		return;
+	}
+
 	const QString caption = trUtf8("Datei speichern");
 	const QString filter = trUtf8("Bilder (*.jpeg *.jpg *.JPG *.JPEG *png)");
 	QString fileName = QFileDialog::getSaveFileName(&(*(ui->centralWidget)), caption, this->curDir.absolutePath(), filter);
@@ -563,8 +579,18 @@ void ProtoWindow::saveImageMetaData()
 {
 	// Meta-Daten zu String serialisieren
 	// in Datei schreiben
-
-	//this->metaDataChanged = false;
+	QFile metaDataFile(this->curDir.absoluteFilePath("dexiv.txt"));
+	int success = -1;
+	if (metaDataFile.open(QIODevice::ReadWrite)) {
+		success = metaDataFile.write(this->imageLabel->getMetaDataString(ui->toPutPlainTextEdit->toPlainText()).toUtf8());
+		metaDataFile.close();
+	}
+	if (success == -1) {
+		qDebug() << "Speichern NICHT erfolgreich";
+	} else {
+		qDebug() << "Speichern erfolgreich";
+	}
+	this->metaDataChanged = false;
 }
 
 void ProtoWindow::close()
@@ -700,6 +726,17 @@ void ProtoWindow::about()
  */
 void ProtoWindow::on_backPushButton_clicked()
 {
+	/*
+	 * Da der "save"-Slot nur void sein darf, muss _hier_ überprüft werden, ob ein Bild gespeichert werden kann.
+	 */
+	if (this->imageLabel->hasInvalidCharacters()) {
+		QMessageBox unzulaessigeZeichen(QMessageBox::Warning, trUtf8("Warnung"), trUtf8("Im Text sind ungültige Zeichen vorhanden. "
+																						"Diese müssen entfernt werden, bevor das Bild gespeichert werden kann.\n"
+																						"Ungültige Zeichen sind: $, %, &"), QMessageBox::Ok, this);
+		unzulaessigeZeichen.exec();
+		return;
+	}
+
 	// Daten des "alten" Bildes müssen gespeichert werden.
 	save();
 		/*
@@ -731,6 +768,17 @@ void ProtoWindow::on_backPushButton_clicked()
  */
 void ProtoWindow::on_forwardPushButton_clicked()
 {
+	/*
+	 * Da der "save"-Slot nur void sein darf, muss _hier_ überprüft werden, ob ein Bild gespeichert werden kann.
+	 */
+	if (this->imageLabel->hasInvalidCharacters()) {
+		QMessageBox unzulaessigeZeichen(QMessageBox::Warning, trUtf8("Warnung"), trUtf8("Im Text sind ungültige Zeichen vorhanden. "
+																						"Diese müssen entfernt werden, bevor das Bild gespeichert werden kann.\n"
+																						"Ungültige Zeichen sind: $, %, &"), QMessageBox::Ok, this);
+		unzulaessigeZeichen.exec();
+		return;
+	}
+
 	// Daten des "alten" Bildes muessen gespeichert werden.
 	save();
 		/*

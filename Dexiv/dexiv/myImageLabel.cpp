@@ -153,7 +153,8 @@ void MyImageLabel::moveRect()
 
 
 /**
- * @brief MyImageLabel::processLine verarbeitet Meta-Daten einer Bild-Datei.
+ * @brief MyImageLabel::processLine verarbeitet Meta-Daten einer Bild-Datei
+ * Der Einfachheit halber wird vorerst angenommen, dass immer nur neue Informationen eingelesen werden.
  * @param line QString, der Meta-Daten enthält.
  * @param currentDir Ordner-Pfad, in dem wir uns gerade befinden.
  */
@@ -174,11 +175,11 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 	}
 
 	// passendes ImageInfo suchen
-	QMap<QString, ImageInfo*>::iterator it = this->imageInfoMap.find(filename);
+	QMap<QString, ImageInfo>::iterator it = this->imageInfoMap.find(filename);
 
-	// schauen, ob Dateiname schon vorhanden
+	// schauen, ob Dateiname schon vorhanden...
 	if (it == this->imageInfoMap.end()) {
-		// wenn nicht, erstellen
+		// ... wenn nicht, erstellen
 		ImageInfo* imageInfo = new ImageInfo(filename);
 		it = this->imageInfoMap.insert(filename, imageInfo);
 	}
@@ -207,16 +208,34 @@ void MyImageLabel::processLine(QString line, QDir currentDir)
 }
 
 
-QString MyImageLabel::getMetaDataString()
+void MyImageLabel::initImageInfoMap(QVector<QString>* vector)
 {
+	for (auto it = vector->constBegin(); it != vector->constEnd(); it++) {
+		this->imageInfoMap.insert(QString(it->data()), new ImageInfo(""));
+	}
+}
+
+
+/**
+ * @brief MyImageLabel::getMetaDataString Erstellt aus allen registrierten Meta-Daten
+ *		den String, der gespeichert werden soll.
+ * @return String, der gespeichert werden soll.
+ */
+QString MyImageLabel::getMetaDataString(QString description)
+{
+	this->curImageInfo.value()->setDescription(description);
+
 	QString metaData = "&";
 	for (auto it = this->imageInfoMap.constBegin(); it != this->imageInfoMap.constEnd(); it++) {
 		metaData += it.value()->getFileName();
 		metaData += "$";
-		metaData += it.value()->getDescprition();
-		//metaData += it.value()
+		metaData += it.value()->getDescription();
+		metaData += "$";
+		metaData += it.value()->getPersonSquaresString();
 	}
 	metaData += "&";
+
+	return metaData;
 }
 
 
@@ -236,6 +255,45 @@ void MyImageLabel::setCurrentImageInfo(QString filename)
 		// TODO überprüfen, ob nach 'insert' der iterator richtig gesetzt wird. (oder auf den Eintrag davor/danach)
 		this->curImageInfo = this->imageInfoMap.insert(filename, imageInfo);
 	}
+}
+
+
+/**
+ * @brief MyImageLabel::hasInvalidCharacters überprüft, ob nicht zugelassene Zeichen vorhanden sind.
+ * In der Beschreibung des Bildes dürfen die Zeichen
+ * '&', '$', '%'
+ * (vorerst) nicht vorkommen, das sie als "Steuerzeichen" für die Serialisierung verwendet werden.
+ * @return true, wenn unzulässige Zeichen vorhanden sind; ansonsten false.
+ */
+bool MyImageLabel::hasInvalidCharacters()
+{
+	if (this->curImageInfo.value()->getDescription().contains('&')) {
+		return true;
+	}
+
+	if (this->curImageInfo.value()->getDescription().contains('$')) {
+		return true;
+	}
+
+	if (this->curImageInfo.value()->getDescription().contains('%')) {
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief MyImageLabel::hasMetaDataChanged Stellt fest, ob sich die Meta-Daten des aktuellen Bildes geändert haben
+ * @param currentDescription aktuelle Beschreibung des Bildes,
+ * @return
+ */
+bool MyImageLabel::hasMetaDataChanged(QString currentDescription) {
+	return this->curImageInfo.value()->hasChanged() || currentDescription != this->curImageInfo.value()->getDescription();
+}
+
+QMap<QString, ImageInfo*>::iterator* MyImageLabel::getCurrentImageInfoVec() {
+	return &this->curImageInfo;
 }
 
 

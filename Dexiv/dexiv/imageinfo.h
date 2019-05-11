@@ -13,7 +13,7 @@ public:
 
 	// getter:
 	QString getFileName() const;
-	QString getDescprition() const;
+	QString getDescription() const;
 	bool hasChanged() const;
 	bool isLoaded() const;
 	QVector<PersonSquare*> getPersonSquares();

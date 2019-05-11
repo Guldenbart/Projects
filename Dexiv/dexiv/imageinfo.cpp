@@ -27,7 +27,7 @@ bool ImageInfo::hasChanged() const
 }
 
 
-QString ImageInfo::getDescprition() const
+QString ImageInfo::getDescription() const
 {
 	return this->description;
 }
@@ -82,6 +82,7 @@ int ImageInfo::addPersonSquare(PersonSquare* personSquare)
 {
 	this->personSquares.push_back(personSquare);
 	return this->personSquares.size() - 1;
+	this->changed = true;
 }
 
 
@@ -94,5 +95,8 @@ QString ImageInfo::getPersonSquaresString() const
 		personSquaresString += this->personSquares[i]->getY();
 		personSquaresString += "%";
 		personSquaresString += this->personSquares[i]->getName();
+		personSquaresString += "$";
 	}
+
+	return personSquaresString;
 }

@@ -34,8 +34,12 @@ public:
 	void processLine(QString line, QDir currentDir);
 
 	// ImageInfo-Methoden
-	QString getMetaDataString(); //<-TODO überarbeiten
+	void initImageInfoMap(QVector<QString>* vector);
+	QString getMetaDataString(QString description); //<-TODO überarbeiten
 	void setCurrentImageInfo(QString filename); //<-TODO überarbeiten
+	bool hasInvalidCharacters();
+	bool hasMetaDataChanged(QString currentDescription);
+	QMap<QString, ImageInfo>::iterator* getCurrentImageInfoVec();
 
 protected:
 	void paintEvent(QPaintEvent* e);
@@ -61,12 +65,12 @@ private:
 	 * key: Dateiname
 	 * value: ImageInfo* mit Meta-Daten dieser Datei
 	 */
-	QMap<QString, ImageInfo*> imageInfoMap; //<-TODO richtig anlegen und löschen, alle Funktionen zur Manipulation
+	QMap<QString, ImageInfo> imageInfoMap; //<-TODO richtig anlegen und löschen, alle Funktionen zur Manipulation
 
 	/**
 	 * @brief curImageInfo Iterator auf den aktuellen Eintrag von 'imageInfoMap'
 	 */
-	QMap<QString, ImageInfo*>::iterator curImageInfo; //<-TODO muss immer richtig gesetzt werden
+	QMap<QString, ImageInfo>::iterator curImageInfo; //<-TODO muss immer richtig gesetzt werden
 
 };
 
